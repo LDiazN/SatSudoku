@@ -6,6 +6,10 @@
 #include <fstream>
 #include <streambuf>
 #include <filesystem>
+#include <chrono>
+#include <thread>
+#include <future>
+#include "Colors.hpp"
 
 SatSudoku::SatSudoku(float max_time, const std::string& file)
     : _file(file)
@@ -36,7 +40,7 @@ void SatSudoku::run()
     while(std::getline(fs, line)) // Iterate over each sudoku line in file
     {
         n_lines++;
-        std::cout << "Reading Sudoku at line " << n_lines << std::endl;
+        std::cout << BLUE << "Reading Sudoku at line " << n_lines << RESET <<  std::endl;
 
         std::stringstream ss(line);
         size_t sudoku_order = 0;
@@ -68,7 +72,49 @@ void SatSudoku::run()
 
             num_index++;
         }
-        sudoku.display();
-    }
 
+        // Show sudoku to be solved
+        sudoku.display();
+        Sudoku solution(0);
+        if (_time == 0) // If time == 0, just solve it whenever it's ready
+            solution = solve_sudoku(sudoku);
+        else // Otherwise, wait for the specified ammount of time
+        {
+            std::future<Sudoku> solve_thread = std::async(SatSudoku::solve_sudoku, sudoku);
+            auto result_ready = solve_thread.wait_for(std::chrono::seconds( (int) _time));
+            if (result_ready != std::future_status::ready)
+            {
+                std::cout << RED << "Time Limit Exceeded, killing solve thread" << RESET << std::endl;
+                // TODO kill process when time limit is exceeded
+            }
+            solution = solve_thread.get();
+        }
+        
+        std::cout << GREEN << "Solved Sudoku: " << RESET << std::endl;
+        solution.display();
+    }
+}
+
+Sudoku SatSudoku::solve_sudoku(const Sudoku& sudoku)
+{
+    // Time each step in this function
+    std::cout << "Converting from sudoku to sat..." << std::endl;
+    auto solve_start = std::chrono::high_resolution_clock::now();
+    SatSolver sat = sudoku.as_sat();
+    auto sudoku_2_sat_duration =  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - solve_start);
+    std::cout << "Convertion done in " << YELLOW << sudoku_2_sat_duration.count() << " ms\n" << RESET;
+
+    std::cout << "Solving sudoku..." << std::endl;
+    auto sat_solver_start = std::chrono::high_resolution_clock::now();
+    auto solution = sat.solve();
+    auto satsolver_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - sat_solver_start);
+    std::cout << "SAT Solver done in " << YELLOW << satsolver_duration.count() << " ms\n" << RESET;
+
+    std::cout << "Converting from SAT back to sudoku..." << std::endl;
+    auto sol_2_sudoku_start = std::chrono::high_resolution_clock::now();
+    auto solved_sudoku = Sudoku::from_sat_sol(solution);
+    auto sol_2_sudoku_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - sol_2_sudoku_start);
+    std::cout << "Convertion done in " << YELLOW << sol_2_sudoku_duration.count() << " ms\n" << RESET;
+    std::cout << "Entire process finished in " << YELLOW << sudoku_2_sat_duration.count() + satsolver_duration.count() + sol_2_sudoku_duration.count() << " ms\n" << RESET;
+    return solved_sudoku;
 }

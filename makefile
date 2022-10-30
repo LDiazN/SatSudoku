@@ -1,5 +1,5 @@
 CC := g++
-CFLAGS := -Wall -std=c++17
+CFLAGS := -Wall -std=c++17 -pthread
 TARGET := SatSudoku
 TARGET_DEBUG := SatSudokuDebug
 
