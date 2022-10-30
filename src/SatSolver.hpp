@@ -1,7 +1,7 @@
 #ifndef SAT_SOLVER_HPP
 #define SAT_SOLVER_HPP
 
-#include <string.h>
+#include <string>
 
 
 /// @brief Output of a Sat solution

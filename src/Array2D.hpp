@@ -12,7 +12,7 @@ class Array2D
     Array2D(size_t rows, size_t cols)
         : _rows(rows)
         , _cols(cols)
-        , _elements = std::vector<T>(rows * cols);
+        , _elements(std::vector<T>(rows * cols))
     { }
 
     /// @brief Get element i,j from the matrix
@@ -41,19 +41,19 @@ class Array2D
     /// @param i row index
     /// @param j column index
     /// @return actual index
-    static size_t actual_index(size_t i, size_t j)
+    size_t actual_index(size_t i, size_t j)
     {
-        assert( i < _rows && j < _columns && "Index out of range of Array2D");
+        assert( i < _rows && j < _cols && "Index out of range of Array2D");
         return i * _cols + j;
     }
 
     private:
-    /// @brief Actual elements storage
-    std::vector<T> _elements;
     /// @brief number of rows
     size_t _rows;
     /// @brief number of columns
     size_t _cols;
+    /// @brief Actual elements storage
+    std::vector<T> _elements;
 };
 
 #endif

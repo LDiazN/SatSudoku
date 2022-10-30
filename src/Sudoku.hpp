@@ -2,7 +2,7 @@
 #define SUDOKU_HPP
 #include "SatSolver.hpp"
 #include <string>
-#include "Utils/Array2D.hpp"
+#include "Array2D.hpp"
 
 class Sudoku
 {
@@ -23,8 +23,14 @@ class Sudoku
     /// @return A solved sudoku matched the given sat solution
     static Sudoku from_sat_sol(const SatSolution& sat_solution);
 
+    Array2D<uint32_t>& get_board() { return _board; }
+
+    /// @brief Print this sudoku in the terminal correctly formatted
+    void display();
+
     private:
     Array2D<uint32_t> _board;
+    size_t _order;
 };
 
 
