@@ -38,17 +38,27 @@ class Sudoku
     /// @param j position d in board
     /// @param d value of position i,j in board
     /// @return a number in range [0, n^6)
-    int cell_to_variable(int i, int j, int d);
+    int cell_to_variable(int i, int j, int d) const;
 
     /// @brief Convert from a variable in range [0, n^6) to a valid board position and value
     /// @param var variable to convert back to board position and value
     /// @param out_i position i in board
     /// @param out_j position j in board
     /// @param out_d value of position i,j
-    void variable_to_cell(Variable var, int& out_i, int& out_j, int& out_d);
+    void variable_to_cell(Variable var, int& out_i, int& out_j, int& out_d) const;
+
+    /// @brief Get the max number of variables for this sudoku
+    /// @return 
+    size_t get_n_variables() const { return _order * _order * _order * _order * _order * _order; }
 
     private: 
-    // void add_completeness_clauses(std::vector<Clause> clauses);
+    /// @brief Add completeness clauses to the specified clauses set
+    /// @param clauses A vector that will be modified by adding new clauses
+    void add_completeness_clauses(std::vector<Clause>& clauses) const;
+
+    /// @brief Add uniqueness clauses to the specified clauses set
+    /// @param clauses A vector that will be modified by adding new clauses
+    void add_uniqueness_clauses(std::vector<Clause>& clauses) const;
 
     private:
     Array2D<uint32_t> _board;
