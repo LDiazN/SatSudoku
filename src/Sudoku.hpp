@@ -31,6 +31,20 @@ class Sudoku
     /// @brief Print this sudoku in the terminal correctly formatted
     void display();
 
+    /// @brief Transform from board position and value to a variable number
+    /// @param i position i in board
+    /// @param j position d in board
+    /// @param d value of position i,j in board
+    /// @return a number in range [0, n^6)
+    int cell_to_variable(int i, int j, int d);
+
+    /// @brief Convert from a variable in range [0, n^6) to a valid board position and value
+    /// @param var variable to convert back to board position and value
+    /// @param out_i position i in board
+    /// @param out_j position j in board
+    /// @param out_d value of position i,j
+    void variable_to_cell(Variable var, int& out_i, int& out_j, int& out_d);
+
     private:
     Array2D<uint32_t> _board;
     size_t _order;

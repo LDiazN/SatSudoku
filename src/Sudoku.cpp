@@ -41,3 +41,27 @@ void Sudoku::display()
             std::cout << std::endl;
     }
 }
+
+int Sudoku::cell_to_variable(int i, int j, int d)
+{
+    auto n2 = _order * _order;
+    auto n4 = n2 * n2;
+
+    assert(0 <= i && i < n2 && "invalid range for i");
+    assert(0 <= j && j < n2 && "invalid range for j");
+    assert(1 <= d && d <= n2 && "invalid range for i");
+
+    return n4 * i + n2 * j + d - 1;
+}
+
+void Sudoku::variable_to_cell(Variable var, int& out_i, int& out_j, int& out_d)
+{
+    auto n2 = _order * _order;
+    auto n4 = n2 * n2;
+    assert(0 <= var < n4*n2 && "Invalid range for variable");
+
+    out_d = var % n2;
+    out_j = ((var - out_d) / n2) % n2;
+    out_i = (var - out_d - n2 * out_j) / n4;
+    out_d++;
+}
