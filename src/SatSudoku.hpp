@@ -29,6 +29,11 @@ class SatSudoku
         /// @return a solved sudoku
         static Sudoku solve_sudoku(const Sudoku& sudoku);
 
+        /// @brief Run a sudoku solving with the specified configuration
+        void run_sudoku_solver();
+
+        /// @brief run a sat solver with the specified configuration
+        void run_sat_solver();
 
     private: 
         std::string _file;

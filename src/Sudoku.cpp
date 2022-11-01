@@ -10,7 +10,7 @@ Sudoku::Sudoku(size_t n)
 SatSolver Sudoku::as_sat() const
 {
     std::cout << "Not implemented" << std::endl;
-    return SatSolver(std::vector<SatSolver::Clause>(),0);
+    return SatSolver(std::vector<Clause>(),0);
 }
 
 Sudoku Sudoku::from_str(const std::string& sudoku_str)

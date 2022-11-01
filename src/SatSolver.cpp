@@ -5,7 +5,22 @@
 
 std::string SatSolution::as_str()
 {
-    return "Not Implemented";
+    std::string format_str;
+    switch (format)
+    {
+    case SATFormat::CNF:
+        format_str = "cnf";
+        break;
+    default:
+        assert(false && "format not supported");
+        break;
+    }
+    std::stringstream ss;
+    ss << "s " << format_str << " " << satisfiable << " " << variable_states.size() << std::endl;
+    for(auto v : variable_states)
+        ss << "v " << v << std::endl;
+
+    return ss.str();
 }
 
 SatSolver::SatSolver(const std::vector<Clause>& clauses, size_t n_variables, SATFormat format)
@@ -14,13 +29,16 @@ SatSolver::SatSolver(const std::vector<Clause>& clauses, size_t n_variables, SAT
     , _format(format)
     , _clauses(clauses)
 
-{
-    std::cout << "Creating a SAT Solver" << std::endl;
-}
+{ }
 
-STATUS SatSolver::from_str(const std::string& sat_str, SatSolver& outResult)
+STATUS SatSolver::from_str(const std::string& sat_str, SatSolver& out_result)
 {
     std::stringstream ss(sat_str);
+    return from_str_stream(ss, out_result);
+}
+
+STATUS SatSolver::from_str_stream(std::stringstream& sat_str_stream, SatSolver& out_result)
+{
     std::string line;
     std::string format;
     std::string word;
@@ -30,7 +48,7 @@ STATUS SatSolver::from_str(const std::string& sat_str, SatSolver& outResult)
 
     bool preamble_ready = false;
 
-    while(std::getline(ss, line))
+    while(std::getline(sat_str_stream, line))
     {
         // Do nothing if first char is c, it's a comment 
         if (line[0] == 'c')
@@ -51,7 +69,7 @@ STATUS SatSolver::from_str(const std::string& sat_str, SatSolver& outResult)
 
         std::stringstream line_stream(line);
         // parsing numbers from this line
-        while (std::getline(line_stream, word, ' '))
+        while (std::getline(line_stream, word, ' ') && clauses.size() < n_clauses)
         {
             int current_variable;
             try 
@@ -75,14 +93,15 @@ STATUS SatSolver::from_str(const std::string& sat_str, SatSolver& outResult)
             
             next_clause.push_back(current_variable);
         }
+
     }
+    if (!next_clause.empty())
+        clauses.emplace_back(next_clause);
 
     assert(format == "cnf" && "Only supported format is 'cnf'");
 
     // Create result 
-    outResult = SatSolver(clauses, n_variables);
-
-
+    out_result = SatSolver(clauses, n_variables);
     return SUCCESS;
 }
 
