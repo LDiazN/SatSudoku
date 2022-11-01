@@ -44,7 +44,8 @@ void Sudoku::display()
 
 int Sudoku::cell_to_variable(int i, int j, int d)
 {
-    auto n2 = _order * _order;
+    auto order = static_cast<int>(_order);
+    auto n2 = order * order;
     auto n4 = n2 * n2;
 
     assert(0 <= i && i < n2 && "invalid range for i");
@@ -56,9 +57,10 @@ int Sudoku::cell_to_variable(int i, int j, int d)
 
 void Sudoku::variable_to_cell(Variable var, int& out_i, int& out_j, int& out_d)
 {
-    auto n2 = _order * _order;
+    auto order = static_cast<int>(_order);
+    auto n2 = order * order;
     auto n4 = n2 * n2;
-    assert(0 <= var < n4*n2 && "Invalid range for variable");
+    assert(0 <= var && var < n4*n2 && "Invalid range for variable");
 
     out_d = var % n2;
     out_j = ((var - out_d) / n2) % n2;

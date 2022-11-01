@@ -2,8 +2,8 @@
 #define SATSUDOKU_HPP
 #include <string>
 
-#include "Sudoku.hpp"
 #include "SatSolver.hpp"
+#include "Sudoku.hpp"
 
 #define SUCCESS 1
 #define FAILURE 0

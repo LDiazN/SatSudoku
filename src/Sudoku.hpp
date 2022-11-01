@@ -4,6 +4,8 @@
 #include <string>
 #include "Array2D.hpp"
 
+
+using Variable = int;
 class SatSolution;
 class SatSolver;
 
@@ -44,6 +46,9 @@ class Sudoku
     /// @param out_j position j in board
     /// @param out_d value of position i,j
     void variable_to_cell(Variable var, int& out_i, int& out_j, int& out_d);
+
+    private: 
+    // void add_completeness_clauses(std::vector<Clause> clauses);
 
     private:
     Array2D<uint32_t> _board;
