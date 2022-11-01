@@ -58,7 +58,7 @@ int Sudoku::cell_to_variable(int i, int j, int d) const
 
     assert(0 <= i && i < n2 && "invalid range for i");
     assert(0 <= j && j < n2 && "invalid range for j");
-    assert(1 <= d && d <= n2 && "invalid range for i");
+    assert(1 <= d && d <= n2 && "invalid range for d");
 
     return n4 * i + n2 * j + d - 1;
 }
