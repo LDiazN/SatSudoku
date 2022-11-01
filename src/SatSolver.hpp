@@ -73,6 +73,10 @@ class SatSolver
         /// @return A solution representing the valid solution
         SatSolution solve();
 
+        /// @brief Return a string representing this sat problem according to the specification 
+        /// @return a string with a valid SAT file
+        std::string as_str();
+
     private:
     size_t _n_variables;
     size_t _n_clauses;

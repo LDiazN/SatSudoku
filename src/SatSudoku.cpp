@@ -11,10 +11,11 @@
 #include <future>
 #include "Colors.hpp"
 
-SatSudoku::SatSudoku(float max_time, const std::string& file, bool file_is_sudoku)
+SatSudoku::SatSudoku(float max_time, const std::string& file, bool file_is_sudoku, bool dump_sat)
     : _file(file)
     , _time(max_time)
     , _file_is_sudoku(file_is_sudoku)
+    , _dump_sat(dump_sat)
 { }
 
 void SatSudoku::run()
@@ -139,6 +140,14 @@ void SatSudoku::run_sat_solver()
     {
         std::cerr << RED << "Unable to parse SAT from file " << _file << RESET << std::endl;
         return;
+    }
+
+    if (_dump_sat)
+    {
+        std::string filename = "sudoku_sat_dump.sat";
+        std::ofstream file(filename);
+        std::cout << BLUE << "Dumping SAT to file: " << YELLOW << filename << RESET << std::endl;
+        file << sat.as_str(); 
     }
 
     SatSolution solution;

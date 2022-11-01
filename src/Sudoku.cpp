@@ -13,7 +13,12 @@ SatSolver Sudoku::as_sat() const
 
     add_completeness_clauses(clauses);
     add_uniqueness_clauses(clauses);
-    return SatSolver(clauses,0);
+    add_validity_clauses(clauses);
+
+    auto n = static_cast<int>(_order);
+    auto n2 = n * n; 
+
+    return SatSolver(clauses, cell_to_variable(n2-1, n2-1, n2) + 1);
 }
 
 Sudoku Sudoku::from_str(const std::string& sudoku_str)
@@ -93,9 +98,38 @@ void Sudoku::add_uniqueness_clauses(std::vector<Clause>& clauses) const
     for (int i = 0; i < n2; i++)
         for (int j = 0; j < n2; j++)
             for (int d = 1; d <= n2; d++)
-                for (int d_ = 1; d_ <= n2; d_++)
+                for (int d_ = d+1; d_ <= n2; d_++)
                 {
                     if (d == d_) continue;
                     clauses.emplace_back(Clause{-cell_to_variable(i,j,d), -cell_to_variable(i,j,d_)});
                 }
+}
+
+void  Sudoku::add_validity_clauses(std::vector<Clause>& clauses) const
+{
+    auto n = static_cast<int>(_order);
+    auto n2 = n * n;
+    // Iterate over rows 
+    for (int i = 0; i < n2; i++)
+        for(int j = 0; j < n2; j++)
+            for(int j_ = j+1; j_ < n2; j_++)
+                for(int d = 1; d <= n2; d++)
+                    clauses.emplace_back(Clause{-cell_to_variable(i,j,d), -cell_to_variable(i,j_,d)});
+
+    // Iterate over cols 
+    for (int j = 0; j < n2; j++)
+        for(int i = 0; i < n2; i++)
+            for(int i_ = i+1; i_ < n2; i_++)
+                for(int d = 1; d <= n2; d++)
+                    clauses.emplace_back(Clause{-cell_to_variable(i,j,d), -cell_to_variable(i_,j,d)});
+                    
+    // Iterate over regions
+    for(int i = 0; i < n2; i += n)
+        for(int j = 0; j < n2; j += n)
+            for(int i_ = i; i_ < i + n; i_++)
+                for(int j_ = j; j_ < j + n; j_++)
+                    for(int i_2 = i_ + 1; i_2 < i + n; i_2 ++)
+                        for(int j_2 = j_ + 1; j_2 < j + n; j_2 ++)
+                            for(int d = 1; d <= n2; d++)
+                                clauses.emplace_back(Clause{-cell_to_variable(i_, j_, d), -cell_to_variable(i_2, j_2, d)});
 }
