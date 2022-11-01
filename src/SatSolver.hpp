@@ -75,7 +75,7 @@ class SatSolver
 
         /// @brief Return a string representing this sat problem according to the specification 
         /// @return a string with a valid SAT file
-        std::string as_str();
+        std::string as_str() const;
 
     private:
     size_t _n_variables;

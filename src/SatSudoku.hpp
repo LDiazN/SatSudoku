@@ -16,7 +16,7 @@ class Sudoku;
 class SatSudoku
 {
     public:
-        SatSudoku(float max_time, const std::string& file, bool file_is_sudoku = true, bool dump_sat);
+        SatSudoku(float max_time, const std::string& file, bool file_is_sudoku = true, bool dump_sat = false);
 
         /// @brief Run application logic
         void run();

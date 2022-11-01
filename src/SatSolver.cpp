@@ -109,3 +109,19 @@ SatSolution SatSolver::solve()
 {
     return SatSolution();
 }
+
+std::string SatSolver::as_str() const
+{
+    std::stringstream ss;
+
+    // Write header
+    ss << "p " << _n_variables << " " << _n_clauses << std::endl;
+    for (const auto &clause : _clauses )
+    {
+        for (const auto &var : clause)
+            ss << var << " "; 
+        ss << "0\n";
+    }
+
+    return ss.str();
+}

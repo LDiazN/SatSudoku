@@ -6,6 +6,8 @@
 
 
 using Variable = int;
+using Clause = std::vector<Variable>;
+
 class SatSolution;
 class SatSolver;
 

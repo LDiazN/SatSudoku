@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     bool dump_sat = flags.find("--dump-sat") != flags.end();
     // Read second argument
     std::string file_path(argv[2]);
-    SatSudoku program(time, file_path, is_sudoku);
+    SatSudoku program(time, file_path, is_sudoku, dump_sat);
     program.run();
 
 
