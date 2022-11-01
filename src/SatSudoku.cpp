@@ -11,9 +11,10 @@
 #include <future>
 #include "Colors.hpp"
 
-SatSudoku::SatSudoku(float max_time, const std::string& file)
+SatSudoku::SatSudoku(float max_time, const std::string& file, bool file_is_sudoku)
     : _file(file)
     , _time(max_time)
+    , _file_is_sudoku(file_is_sudoku)
 { }
 
 void SatSudoku::run()

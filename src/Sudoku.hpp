@@ -4,6 +4,9 @@
 #include <string>
 #include "Array2D.hpp"
 
+class SatSolution;
+class SatSolver;
+
 class Sudoku
 {
     public:
