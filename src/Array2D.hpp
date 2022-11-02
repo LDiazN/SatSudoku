@@ -19,7 +19,7 @@ class Array2D
     /// @param i row index
     /// @param j column index
     /// @return element in position i,j
-    T get(size_t i, size_t j)
+    T get(size_t i, size_t j) const
     {
         return _elements[actual_index(i,j)];
     }
@@ -41,7 +41,7 @@ class Array2D
     /// @param i row index
     /// @param j column index
     /// @return actual index
-    size_t actual_index(size_t i, size_t j)
+    size_t actual_index(size_t i, size_t j) const
     {
         assert( i < _rows && j < _cols && "Index out of range of Array2D");
         return i * _cols + j;

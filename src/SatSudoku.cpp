@@ -149,6 +149,7 @@ void SatSudoku::run_sudoku_solver()
         solution.display();
     }
 }
+
 void SatSudoku::run_sat_solver()
 {
     std::ifstream file_stream(_file);

@@ -32,7 +32,7 @@ class Sudoku
 
     /// @brief Get a reference to the board internal storage
     /// @return An Array2D with board information for this sudoku
-    Array2D<uint32_t>& get_board() { return _board; }
+    Array2D<int>& get_board() { return _board; }
 
     /// @brief Print this sudoku in the terminal correctly formatted
     void display();
@@ -74,7 +74,7 @@ class Sudoku
     void add_validity_clauses(std::vector<Clause>& clauses) const;
 
     private:
-    Array2D<uint32_t> _board;
+    Array2D<int> _board;
     size_t _order;
 };
 
