@@ -27,9 +27,9 @@ clean:
 debug: $(TARGET_DEBUG)
 
 $(TARGET_DEBUG): $(OBJS_DEBUG)
-	$(CC) -o $@ $^ $(CFLAGS) -g
+	$(CC) -o $@ $^ $(CFLAGS) -g -D DEBUG
 
 debug/%.o: src/%.cpp
 	mkdir --parents debug
-	$(CC) $(CFLAGS) -c $< -g
+	$(CC) $(CFLAGS) -c $< -g -D DEBUG
 	mv *.o debug/
