@@ -107,7 +107,7 @@ STATUS SatSolver::from_str_stream(std::stringstream& sat_str_stream, SatSolver& 
 
 SatSolution SatSolver::solve()
 {
-    return SatSolution();
+    return SatSolution{SatSatisfiable::UNKNOWN, 0, std::vector<Variable>(), SATFormat::CNF};
 }
 
 std::string SatSolver::as_str() const

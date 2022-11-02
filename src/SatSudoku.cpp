@@ -61,6 +61,21 @@ Sudoku SatSudoku::solve_sudoku(const Sudoku& sudoku, bool dump_sat)
     auto satsolver_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - sat_solver_start);
     std::cout << "SAT Solver done in " << YELLOW << satsolver_duration.count() << " ms\n" << RESET;
 
+    switch (solution.satisfiable)
+    {
+    case SatSatisfiable::SATISFIABLE:
+        std::cout << GREEN << "Sudoku has solution!" << RESET << std::endl;
+        break;
+    case SatSatisfiable::UNSATISFIABLE:
+        std::cout << RED << "Sudoku has no solution  T.T" << RESET << std::endl;
+        return sudoku;
+        break;
+    case SatSatisfiable::UNKNOWN:
+        std::cout << RED << "Unable to find a solution for this sudoku" << RESET << std::endl;
+        return sudoku;
+        break;
+    }
+
     std::cout << "Converting from SAT back to sudoku..." << std::endl;
     auto sol_2_sudoku_start = std::chrono::high_resolution_clock::now();
     auto solved_sudoku = Sudoku::from_sat_sol(solution);
@@ -130,7 +145,7 @@ void SatSudoku::run_sudoku_solver()
             solution = solve_thread.get();
         }
         
-        std::cout << GREEN << "Solved Sudoku: " << RESET << std::endl;
+        std::cout << GREEN << "Resulting Sudoku: " << RESET << std::endl;
         solution.display();
     }
 }
