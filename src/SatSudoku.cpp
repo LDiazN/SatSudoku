@@ -39,12 +39,19 @@ void SatSudoku::run()
         run_sat_solver();
 }
 
-Sudoku SatSudoku::solve_sudoku(const Sudoku& sudoku)
+Sudoku SatSudoku::solve_sudoku(const Sudoku& sudoku, bool dump_sat)
 {
     // Time each step in this function
     std::cout << "Converting from sudoku to sat..." << std::endl;
     auto solve_start = std::chrono::high_resolution_clock::now();
     SatSolver sat = sudoku.as_sat();
+    if (dump_sat)
+    {
+        std::string filename = "sudoku_sat_dump.sat";
+        std::ofstream file(filename);
+        std::cout << BLUE << "Dumping SAT to file: " << YELLOW << filename << RESET << std::endl;
+        file << sat.as_str(); 
+    }
     auto sudoku_2_sat_duration =  std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - solve_start);
     std::cout << "Convertion done in " << YELLOW << sudoku_2_sat_duration.count() << " ms\n" << RESET;
 
@@ -90,7 +97,7 @@ void SatSudoku::run_sudoku_solver()
         auto board_size = sudoku_order * sudoku_order;
         while(std::getline(ss, next_num_str, '-'))
         {
-            uint next_num;
+            uint next_num = 0;
             size_t board_row = num_index / board_size;
             size_t board_col = num_index % (board_size);
 
@@ -110,10 +117,10 @@ void SatSudoku::run_sudoku_solver()
         sudoku.display();
         Sudoku solution(0);
         if (_time == 0) // If time == 0, just solve it whenever it's ready
-            solution = solve_sudoku(sudoku);
+            solution = solve_sudoku(sudoku, _dump_sat);
         else // Otherwise, wait for the specified ammount of time
         {
-            std::future<Sudoku> solve_thread = std::async(SatSudoku::solve_sudoku, sudoku);
+            std::future<Sudoku> solve_thread = std::async(SatSudoku::solve_sudoku, sudoku, _dump_sat);
             auto result_ready = solve_thread.wait_for(std::chrono::seconds( (int) _time));
             if (result_ready != std::future_status::ready)
             {
@@ -140,14 +147,6 @@ void SatSudoku::run_sat_solver()
     {
         std::cerr << RED << "Unable to parse SAT from file " << _file << RESET << std::endl;
         return;
-    }
-
-    if (_dump_sat)
-    {
-        std::string filename = "sudoku_sat_dump.sat";
-        std::ofstream file(filename);
-        std::cout << BLUE << "Dumping SAT to file: " << YELLOW << filename << RESET << std::endl;
-        file << sat.as_str(); 
     }
 
     SatSolution solution;

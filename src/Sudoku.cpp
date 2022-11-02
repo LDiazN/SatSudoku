@@ -84,7 +84,7 @@ void Sudoku::add_completeness_clauses(std::vector<Clause>& clauses) const
     for(int i = 0; i < n2; i++)
         for(int j = 0; j < n2; j++)
         {
-            for (int d = 1; i <= n2; d++)
+            for (int d = 1; d <= n2; d++)
                 next_clause.push_back(cell_to_variable(i,j,d));
             clauses.emplace_back(next_clause);
             next_clause.clear();
