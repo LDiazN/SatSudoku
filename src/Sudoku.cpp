@@ -29,8 +29,28 @@ Sudoku Sudoku::from_str(const std::string& sudoku_str)
 
 Sudoku Sudoku::from_sat_sol(const SatSolution& sat_solution)
 {
-    std::cout << "Not implemented" << std::endl;
-    return Sudoku(3);
+    // TODO check this function when a sat solver is ready
+    // Convert from number of variables to actual order
+    auto order = order_for_n_vars(sat_solution.n_variables);
+    Sudoku sudoku(order);
+    auto& board = sudoku.get_board();
+
+    // If can't solve sudoku, just return empty sudoku
+    if (sat_solution.satisfiable == SatSatisfiable::UNKNOWN || sat_solution.satisfiable == SatSatisfiable::UNSATISFIABLE)
+        return sudoku;
+
+    // Fill 
+    for(Variable variable : sat_solution.variable_states)
+    {
+        int i,j,d;
+        if (variable < 0) // false, we don't want it
+            continue;
+
+        sudoku.variable_to_cell(abs(variable), i,j,d);
+        board.set(i,j,d);
+    }
+
+    return sudoku;
 }
 
 void Sudoku::display()
@@ -74,6 +94,23 @@ void Sudoku::variable_to_cell(Variable var, int& out_i, int& out_j, int& out_d) 
     out_j = ((var - out_d) / n2) % n2;
     out_i = (var - out_d - n2 * out_j) / n4;
     out_d++;
+}
+
+int  Sudoku::order_for_n_vars(int n_variables)
+{
+    // order of sudoku can't be that big, right?
+    // ... right???
+    for (int n = 0; true; n++)
+    {
+        auto n2 = n * n;
+        auto n4 = n2 * n2;
+        auto N = n4 * (n-1) + n2 * (n-1) + n2;
+        if (N == n_variables)
+            return n;
+
+        //Sanity check for debugging
+        assert( n < 100 && "couldn't find actual order of variables ");
+    }
 }
 
 void Sudoku::add_completeness_clauses(std::vector<Clause>& clauses) const

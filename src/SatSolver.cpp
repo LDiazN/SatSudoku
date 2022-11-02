@@ -58,7 +58,7 @@ STATUS SatSolver::from_str_stream(std::stringstream& sat_str_stream, SatSolver& 
         else if (line[0] == 'p')
         {
             std::stringstream ss(line);
-            if (!(ss >> word >> format >> n_variables >> n_clauses))
+             if (!(ss >> word >> format >> n_variables >> n_clauses))
                 return FAILURE;
 
             preamble_ready = true;;
@@ -114,8 +114,19 @@ std::string SatSolver::as_str() const
 {
     std::stringstream ss;
 
+    std::string format_str;
+    switch (_format)
+    {
+    case SATFormat::CNF:
+        format_str = "cnf";
+        break;
+    default:
+        assert(false && "format not supported");
+        break;
+    }
+
     // Write header
-    ss << "p " << _n_variables << " " << _n_clauses << std::endl;
+    ss << "p " << format_str << " " << _n_variables << " " << _n_clauses << std::endl;
     for (const auto &clause : _clauses )
     {
         for (const auto &var : clause)

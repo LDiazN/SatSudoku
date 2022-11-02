@@ -30,6 +30,8 @@ class Sudoku
     /// @return A solved sudoku matched the given sat solution
     static Sudoku from_sat_sol(const SatSolution& sat_solution);
 
+    /// @brief Get a reference to the board internal storage
+    /// @return An Array2D with board information for this sudoku
     Array2D<uint32_t>& get_board() { return _board; }
 
     /// @brief Print this sudoku in the terminal correctly formatted
@@ -48,6 +50,11 @@ class Sudoku
     /// @param out_j position j in board
     /// @param out_d value of position i,j
     void variable_to_cell(Variable var, int& out_i, int& out_j, int& out_d) const;
+
+    /// @brief Get order of sudoku based in number of variables
+    /// @param n_variables number of variables
+    /// @return order of this sudoku 
+    static int  order_for_n_vars(int n_variables);
 
     /// @brief Get the max number of variables for this sudoku
     /// @return 
