@@ -107,7 +107,41 @@ STATUS SatSolver::from_str_stream(std::stringstream& sat_str_stream, SatSolver& 
 
 SatSolution SatSolver::solve()
 {
-    return SatSolution{SatSatisfiable::UNKNOWN, 0, std::vector<Variable>(), SATFormat::CNF};
+    std::vector<int> state(_n_variables + 1);
+    // Initialize state as -1, each variable can be modified as needed
+    for(size_t i = 0; i < state.size(); i++)
+        state[i] = -1;
+
+    // Initialize unit clauses to their corresponding value to save computation
+    for (auto const& clause : _clauses)
+        if (clause.size() == 1)
+        {
+            int expected_state;
+            Variable var = clause[0];
+            if (var < 0)
+                expected_state = 0;
+            else if (var > 0)
+                expected_state = 1;
+            else 
+                assert(false && "variables shouldn't be zero");
+            
+            state[abs(var)] = expected_state;
+        }
+
+    // Perform backtracking to solve this sat
+    if (!is_satisfiable(_clauses, state, 0))
+        // If we couldn't make it, return empty response
+        return SatSolution{SatSatisfiable::UNSATISFIABLE, 0, std::vector<Variable>(), SATFormat::CNF};
+
+    // Build result
+    std::vector<Variable> result(_n_variables);
+    for(int i = 0; static_cast<size_t>(i) < result.size(); i++)
+        if (state[i+1] == 1)
+            result[i] = (i+1); 
+        else
+            result[i] = -(i+1); // set insecure variables to false, we want the minimum amount of trues
+        
+    return SatSolution{SatSatisfiable::SATISFIABLE, _n_variables, result, SATFormat::CNF};
 }
 
 std::string SatSolver::as_str() const
@@ -135,4 +169,48 @@ std::string SatSolver::as_str() const
     }
 
     return ss.str();
+}
+
+bool SatSolver::is_satisfiable(const std::vector<Clause>& clauses, std::vector<int>& memo, size_t current_clause) const
+{
+    assert(memo.size() == _n_variables + 1 && "Not the right amount of variables");
+    auto const& clause = clauses[current_clause];
+    // A bool expresion is satisfiable if this clause is satisfiable and all the clauses are satisfiable
+
+    if (current_clause >= clauses.size())
+        return true;                        // assume last clause is true, neutral of and
+
+    for(auto const variable : clause)
+    {
+        assert(variable != 0 && "Variable can't be 0");
+        auto const var_index = abs(variable);
+
+        // Select expected value for this variable
+        int expected_value;
+        if (variable < 0)       // if variable is negated, we want it to be 0 so the result is true
+            expected_value = 0;
+        if (variable > 0)
+            expected_value = 1; // If variable is not negated, we want it to just be true
+        
+        // if value value of this variable is true, this clause is already satisfiable 
+        if (memo[var_index] == -1)
+        {
+            // We can change it, but with responsability. 
+            // if we win, we leave memo as it is. If not, we roll back our changes
+            memo[var_index] = expected_value;
+            if (is_satisfiable(clauses, memo, current_clause + 1))
+            {
+                return true;
+            }
+            
+            // Rollback, we didn't win :(
+            memo[var_index] = -1;
+        }
+        else if (memo[var_index] == expected_value)
+            return is_satisfiable(clauses, memo, current_clause + 1);
+        else  // If value of this variable is false, then we have to keep checking remaining variables 
+            continue;
+    }
+
+    return false; // If we couldn't make this 
 }

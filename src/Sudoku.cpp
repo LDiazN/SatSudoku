@@ -26,15 +26,31 @@ SatSolver Sudoku::as_sat() const
     std::sort(clauses.begin(), clauses.end());
     clauses.erase(std::unique(clauses.begin(), clauses.end()), clauses.end());
 
-    // Sort by size of vector
-    // TODO Just for debug, remove for deliver
-    #ifdef DEBUG
-    std::sort(clauses.begin(), clauses.end(), [&](const Clause& c1, const Clause& c2){ return c1.size() < c2.size(); });
-    #endif
+
+   // When you sort all clauses, there's a lot of clauses that end like -p ^ (-p v _),
+   // and therefore you can remove them, since we only care about true variables
+    std::vector<Clause> final_clauses;
+    Variable next_clause_deleter = 0;
+    for (auto const & clause : clauses)
+    {
+        assert(clause.size() > 0 && "Invalid empty clause");
+
+        if (clause.size() == 1)
+        {
+            next_clause_deleter = clause[0];
+            final_clauses.emplace_back(clause);
+            continue;
+        }
+        else if (clause.size() > 1 && clause[0] != next_clause_deleter) // if can't be deleted by this deleter, add it to result
+        {
+            final_clauses.emplace_back(clause);
+            continue;
+        }
+    }
     auto n = static_cast<int>(_order);
     auto n2 = n * n; 
 
-    return SatSolver(clauses, cell_to_variable(n2-1, n2-1, n2) + 1);
+    return SatSolver(final_clauses, cell_to_variable(n2-1, n2-1, n2));
 }
 
 Sudoku Sudoku::from_str(const std::string& sudoku_str)
@@ -43,17 +59,14 @@ Sudoku Sudoku::from_str(const std::string& sudoku_str)
     return Sudoku(3);
 }
 
-Sudoku Sudoku::from_sat_sol(const SatSolution& sat_solution)
+void Sudoku::add_sat_solution(const SatSolution& sat_solution)
 {
     // TODO check this function when a sat solver is ready
     // Convert from number of variables to actual order
-    auto order = order_for_n_vars(sat_solution.n_variables);
-    Sudoku sudoku(order);
-    auto& board = sudoku.get_board();
 
     // If can't solve sudoku, just return empty sudoku
     if (sat_solution.satisfiable == SatSatisfiable::UNKNOWN || sat_solution.satisfiable == SatSatisfiable::UNSATISFIABLE)
-        return sudoku;
+        return;
 
     // Fill 
     for(Variable variable : sat_solution.variable_states)
@@ -62,11 +75,11 @@ Sudoku Sudoku::from_sat_sol(const SatSolution& sat_solution)
         if (variable < 0) // false, we don't want it
             continue;
 
-        sudoku.variable_to_cell(abs(variable), i,j,d);
-        board.set(i,j,d);
-    }
+        variable_to_cell(abs(variable), i,j,d);
 
-    return sudoku;
+        if (_board.get(i,j) == 0)
+            _board.set(i,j,d);
+    }
 }
 
 void Sudoku::display()
@@ -96,11 +109,12 @@ int Sudoku::cell_to_variable(int i, int j, int d) const
     assert(0 <= j && j < n2 && "invalid range for j");
     assert(1 <= d && d <= n2 && "invalid range for d");
 
-    return n4 * i + n2 * j + d - 1;
+    return n4 * i + n2 * j + d;
 }
 
 void Sudoku::variable_to_cell(Variable var, int& out_i, int& out_j, int& out_d) const
 {
+    var--;
     auto order = static_cast<int>(_order);
     auto n2 = order * order;
     auto n4 = n2 * n2;
@@ -120,7 +134,7 @@ int  Sudoku::order_for_n_vars(int n_variables)
     {
         auto n2 = n * n;
         auto n4 = n2 * n2;
-        auto N = n4 * (n-1) + n2 * (n-1) + n2;
+        auto N = n4 * n2;
         if (N == n_variables)
             return n;
 

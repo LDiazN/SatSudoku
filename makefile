@@ -1,5 +1,5 @@
 CC := g++
-CFLAGS := -Wall -std=c++17 -pthread -O2
+CFLAGS := -Wall -std=c++17 -pthread 
 TARGET := SatSudoku
 TARGET_DEBUG := SatSudokuDebug
 
@@ -12,11 +12,11 @@ OBJS_DEBUG := $(patsubst src/%.cpp,debug/%.o,$(SRCS))
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS) -O2
 
 bin/%.o: src/%.cpp
 	mkdir --parents bin
-	$(CC) $(CFLAGS) -c $< 
+	$(CC) $(CFLAGS) -c $< -O2
 	mv *.o bin/
 
 clean:

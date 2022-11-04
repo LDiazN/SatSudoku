@@ -28,7 +28,7 @@ class Sudoku
     /// @brief Create a sudoku from a sat solution, assuming the sat solution is consistent with a sudoku
     /// @param sat_solution A solution for a sat converted sudoku
     /// @return A solved sudoku matched the given sat solution
-    static Sudoku from_sat_sol(const SatSolution& sat_solution);
+    void add_sat_solution(const SatSolution& sat_solution);
 
     /// @brief Get a reference to the board internal storage
     /// @return An Array2D with board information for this sudoku

@@ -39,7 +39,7 @@ void SatSudoku::run()
         run_sat_solver();
 }
 
-Sudoku SatSudoku::solve_sudoku(const Sudoku& sudoku, bool dump_sat)
+Sudoku SatSudoku::solve_sudoku(Sudoku& sudoku, bool dump_sat)
 {
     // Time each step in this function
     std::cout << "Converting from sudoku to sat..." << std::endl;
@@ -78,11 +78,11 @@ Sudoku SatSudoku::solve_sudoku(const Sudoku& sudoku, bool dump_sat)
 
     std::cout << "Converting from SAT back to sudoku..." << std::endl;
     auto sol_2_sudoku_start = std::chrono::high_resolution_clock::now();
-    auto solved_sudoku = Sudoku::from_sat_sol(solution);
+    sudoku.add_sat_solution(solution);
     auto sol_2_sudoku_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - sol_2_sudoku_start);
     std::cout << "Convertion done in " << YELLOW << sol_2_sudoku_duration.count() << " ms\n" << RESET;
     std::cout << "Entire process finished in " << YELLOW << sudoku_2_sat_duration.count() + satsolver_duration.count() + sol_2_sudoku_duration.count() << " ms\n" << RESET;
-    return solved_sudoku;
+    return sudoku;
 }
 
 void SatSudoku::run_sudoku_solver()
@@ -135,7 +135,7 @@ void SatSudoku::run_sudoku_solver()
             solution = solve_sudoku(sudoku, _dump_sat);
         else // Otherwise, wait for the specified ammount of time
         {
-            std::future<Sudoku> solve_thread = std::async(SatSudoku::solve_sudoku, sudoku, _dump_sat);
+            std::future<Sudoku> solve_thread = std::async(SatSudoku::solve_sudoku, std::ref(sudoku), _dump_sat);
             auto result_ready = solve_thread.wait_for(std::chrono::seconds( (int) _time));
             if (result_ready != std::future_status::ready)
             {

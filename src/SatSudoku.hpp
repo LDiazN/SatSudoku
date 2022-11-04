@@ -27,7 +27,7 @@ class SatSudoku
         /// back to sudoku
         /// @param sudoku sudoku to be solved
         /// @return a solved sudoku
-        static Sudoku solve_sudoku(const Sudoku& sudoku, bool dump_sat = false);
+        static Sudoku solve_sudoku(Sudoku& sudoku, bool dump_sat = false);
 
         /// @brief Run a sudoku solving with the specified configuration
         void run_sudoku_solver();

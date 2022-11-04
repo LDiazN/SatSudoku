@@ -78,10 +78,13 @@ class SatSolver
         std::string as_str() const;
 
     private:
-    size_t _n_variables;
-    size_t _n_clauses;
-    SATFormat _format;
-    std::vector<Clause> _clauses;
+        bool is_satisfiable(const std::vector<Clause>& clauses,std::vector<int>& memo, size_t current_clause = 0) const;
+
+    private:
+        size_t _n_variables;
+        size_t _n_clauses;
+        SATFormat _format;
+        std::vector<Clause> _clauses;
 };
 
 #endif
