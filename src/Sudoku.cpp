@@ -18,39 +18,10 @@ SatSolver Sudoku::as_sat() const
     add_uniqueness_clauses(clauses);
     add_validity_clauses(clauses);
 
-    // Now sort every clause, so we can delete duplicates
-    for(auto &clause : clauses)
-        std::sort(clause.begin(), clause.end());
-
-    // remove duplicates
-    std::sort(clauses.begin(), clauses.end());
-    clauses.erase(std::unique(clauses.begin(), clauses.end()), clauses.end());
-
-
-   // When you sort all clauses, there's a lot of clauses that end like -p ^ (-p v _),
-   // and therefore you can remove them, since we only care about true variables
-    std::vector<Clause> final_clauses;
-    Variable next_clause_deleter = 0;
-    for (auto const & clause : clauses)
-    {
-        assert(clause.size() > 0 && "Invalid empty clause");
-
-        if (clause.size() == 1)
-        {
-            next_clause_deleter = clause[0];
-            final_clauses.emplace_back(clause);
-            continue;
-        }
-        else if (clause.size() > 1 && clause[0] != next_clause_deleter) // if can't be deleted by this deleter, add it to result
-        {
-            final_clauses.emplace_back(clause);
-            continue;
-        }
-    }
     auto n = static_cast<int>(_order);
     auto n2 = n * n; 
 
-    return SatSolver(final_clauses, cell_to_variable(n2-1, n2-1, n2));
+    return SatSolver(clauses, cell_to_variable(n2-1, n2-1, n2));
 }
 
 Sudoku Sudoku::from_str(const std::string& sudoku_str)
@@ -249,3 +220,4 @@ void  Sudoku::add_validity_clauses(std::vector<Clause>& clauses) const
                                     clauses.emplace_back(Clause{-cell_to_variable(i_, j_, d), -cell_to_variable(i_2, j_2, d)});
                             }
 }
+

@@ -73,13 +73,27 @@ class SatSolver
         /// @return A solution representing the valid solution
         SatSolution solve();
 
+        /// @brief Try to reduce sat as much as possible using symlogic properties
+        void simplify();
+
         /// @brief Return a string representing this sat problem according to the specification 
         /// @return a string with a valid SAT file
         std::string as_str() const;
 
+        /// @brief Get expected value for this variable for it to be true. If negated, value is false, if not, is true
+        /// @param var var to get value for
+        /// @return expected value so that this variable evaluates to true
+        static int expected_value(Variable var);
+
     private:
+        /// @brief Utility function to find if a list of clauses is satisfiable or not using backtracking 
+        /// @param clauses list of clauses to check for satisfiability
+        /// @param memo state of variables so far. 1 for true, 0 for false, -1 for unset
+        /// @param current_clause start of clause in vector of clauses
+        /// @return if this set of clauses is satisfiable
         bool is_satisfiable(const std::vector<Clause>& clauses,std::vector<int>& memo, size_t current_clause = 0) const;
 
+        static void reduce_unit_clauses(std::vector<Clause>& clauses, size_t n_variables);
     private:
         size_t _n_variables;
         size_t _n_clauses;

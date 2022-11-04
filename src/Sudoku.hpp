@@ -73,6 +73,8 @@ class Sudoku
     /// @param clauses A vector that will be modified by adding new clauses
     void add_validity_clauses(std::vector<Clause>& clauses) const;
 
+   
+
     private:
     Array2D<int> _board;
     size_t _order;

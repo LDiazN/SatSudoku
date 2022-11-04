@@ -45,6 +45,7 @@ Sudoku SatSudoku::solve_sudoku(Sudoku& sudoku, bool dump_sat)
     std::cout << "Converting from sudoku to sat..." << std::endl;
     auto solve_start = std::chrono::high_resolution_clock::now();
     SatSolver sat = sudoku.as_sat();
+    sat.simplify();
     if (dump_sat)
     {
         std::string filename = "sudoku_sat_dump.sat";
