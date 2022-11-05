@@ -3,6 +3,8 @@
 #include <sstream>
 #include <set>
 #include <algorithm>
+#include <map>
+#include <queue>
 
 std::string SatSolution::as_str()
 {
@@ -108,31 +110,47 @@ STATUS SatSolver::from_str_stream(std::stringstream& sat_str_stream, SatSolver& 
 
 SatSolution SatSolver::solve()
 {
-    std::vector<int> state(_n_variables + 1);
     // Initialize state as -1, each variable can be modified as needed
-    for(size_t i = 0; i < state.size(); i++)
-        state[i] = -1;
+    std::vector<int> state(_n_variables + 1, -1);
 
     // Initialize unit clauses to their corresponding value to save computation
-    for (auto const& clause : _clauses)
-        if (clause.size() == 1)
-        {
-            Variable var = clause[0];
-            int expected_state = expected_value(var);
-            state[abs(var)] = expected_state;
-        }
-    // Filter unit clauses, those won't change 
-    std::vector<Clause> new_clauses;
-    for(auto const& clause : _clauses)
-        if (clause.size() > 1)
-            new_clauses.emplace_back(clause);
+    reduce_unit_clauses(_clauses, state);
 
+    // Reduce literals 
+    literal_elimination(_clauses, state);
+    simplify();
+
+    // ---- Debug only --------------------------------
+    std::map<Variable, size_t> repetitions;
+    std::vector<size_t> negative_reps(_n_variables, 0);
+    std::vector<size_t> positive_reps(_n_variables, 0);
+    for (auto const& clause : _clauses)
+        for (auto const var : clause)
+        {
+            auto const var_index = abs(var);
+            if (repetitions.find(var_index) == repetitions.end() && state[var_index] == -1)
+                repetitions[var_index] = 1;
+            else 
+                repetitions[var_index] ++;
+            if (var < 0)
+            {
+                negative_reps[var_index] ++;
+            }
+            else if (var > 0)
+                positive_reps[var_index] ++;
+            else 
+                assert(false && "Invalid state");
+        }
+    std::priority_queue<std::pair<size_t, Variable>> variables_per_reps;
+    for(auto const& [var, reps] : repetitions)
+        variables_per_reps.push({reps, var});
+
+
+    // ------------------------------------------------
     // Perform backtracking to solve this sat
-    if (!is_satisfiable(new_clauses, state, 0))
+    if (!is_satisfiable_v2(_clauses, state, variables_per_reps, negative_reps, positive_reps))
         // If we couldn't make it, return empty response
         return SatSolution{SatSatisfiable::UNSATISFIABLE, 0, std::vector<Variable>(), SATFormat::CNF};
-
-    new_clauses.clear();
 
     // Build result
     std::vector<Variable> result(_n_variables);
@@ -147,7 +165,6 @@ SatSolution SatSolver::solve()
 
 void SatSolver::simplify()
 {
-    reduce_unit_clauses(_clauses, _n_variables);
 
     // Now sort every clause, so we can delete duplicates
     for(auto &clause : _clauses)
@@ -178,6 +195,7 @@ void SatSolver::simplify()
             continue;
         }
     }
+    _clauses = final_clauses;
 }
 
 std::string SatSolver::as_str() const
@@ -207,8 +225,10 @@ std::string SatSolver::as_str() const
     return ss.str();
 }
 
-bool SatSolver::is_satisfiable(const std::vector<Clause>& clauses, std::vector<int>& memo, size_t current_clause) const
+bool SatSolver::is_satisfiable(const std::vector<Clause>& clauses, std::vector<int>& memo, size_t current_clause) 
 {
+    // add_clause_count(current_clause);
+
     assert(memo.size() == _n_variables + 1 && "Not the right amount of variables");
     auto const& clause = clauses[current_clause];
     // A bool expresion is satisfiable if this clause is satisfiable and all the clauses are satisfiable
@@ -324,60 +344,146 @@ int SatSolver::expected_value(Variable var)
     return expected_value;
 }
 
-void SatSolver::reduce_unit_clauses(std::vector<Clause>& clauses, size_t n_variables)
+void SatSolver::reduce_unit_clauses(std::vector<Clause>& clauses, std::vector<int>& state)
 {
-    // Init a vector with the state of variables, we will try to remove clauses that are already constant (they eval to true)
-    std::set<Variable> unit_variables;
-    bool change = true;
-    while(change)
-    {
-        change = false;
-        for(auto const& clause : clauses)
+    // Collect all unit clauses
+    for(auto const& clause : clauses)
+        if (clause.size() == 1)
         {
-            if (clause.size() == 1)
-            {
-                auto const elem = clause[0];
-                if (unit_variables.find(elem) == unit_variables.end())
-                {
-                    change = true;
-                    unit_variables.insert(elem);
-                }
-                continue;
-            }
-            
-            // count how many clauses already are unit in this clause
-            size_t units = 0;
-            Variable possible_unit = 0;
-            for (auto const elem : clause)
-                if (unit_variables.find(elem) != unit_variables.end())
-                    units++;
-                else
-                    possible_unit = elem;
-            
-            // Then we have a unit-able clause
-            if (units == clause.size() - 1)
-            {
-                unit_variables.insert(possible_unit);
-                change = true;
-            }
+            auto const var = clause[0];
+            auto const var_index = abs(var);
+            state[var_index] = expected_value(var);
         }
+
+    constant_reduction(clauses, state);
+}
+
+void SatSolver::literal_elimination(std::vector<Clause>& clauses, std::vector<int>& state)
+{
+    std::set<Variable> positive_variables;
+    std::set<Variable> negative_variables;
+    for(auto const& clause : clauses)
+        for(auto const var : clause)
+            if (var < 0)
+                negative_variables.insert(abs(var));
+            else 
+                positive_variables.insert(abs(var));
+
+    for(int i = 1; static_cast<size_t>(i) < state.size(); i++ )
+    {
+        bool in_positive = positive_variables.find(i) != positive_variables.end();
+        bool in_negative = negative_variables.find(i) != negative_variables.end();
+
+        if ( in_negative && !in_positive)
+            state[i] = 0;
+        else if (in_positive && !in_negative)
+            state[i] = 1;
     }
 
+    constant_reduction(clauses, state);
+}
+
+void SatSolver::constant_reduction(std::vector<Clause>& clauses, std::vector<int>& state)
+{
+     // Now perform constant reduction
     std::vector<Clause> new_clauses;
-    for (auto const& clause : clauses)
+    Clause next_clause;
+    for(auto const& clause : clauses)
     {
-        bool has_units = false;
-        for (auto const var : clause)
+        next_clause.clear();
+
+        for(auto const var : clause)
         {
-            if (unit_variables.find(var) != unit_variables.end())
+            auto const var_index = abs(var);
+            auto const var_state = state[var_index];
+
+            // If 1, this clause adds nothing
+            if ((var_state == 1 && var > 0) || (var_state == 0 && var < 0)) // only add variable to clause if not constant
             {
-                new_clauses.emplace_back(Clause{var});
-                has_units = true;
+                next_clause.clear();
+                break;
+            }
+            else if ((var_state == 1 && var < 0) || (var_state == 0 && var > 0)) // if variable evals to false, then don't add it to the clause
+                continue;
+            else if (var_state == -1) // if unassigned, just add it
+                next_clause.push_back(var);
+            else 
+            {
+                assert(false && "invalid state");
             }
         }
-        if (!has_units)
-            new_clauses.emplace_back(clause);
+
+        if (!next_clause.empty())
+            new_clauses.emplace_back(next_clause);
+    }
+    clauses = new_clauses;
+}
+
+int SatSolver::eval(const std::vector<Clause>& clauses,const std::vector<int>& state)
+{
+    for(auto const& clause : clauses)
+    {
+        bool clause_is = false;
+        bool has_chance = false;
+        for(auto const var : clause)
+        {
+            auto const var_index = abs(var);
+
+            // If variable evals to what we want it to be, then we're done with this clause
+            if (state[var_index] == expected_value(var))
+            {
+                clause_is = true;
+                break;
+            }
+            if (state[var_index] == -1) // if a variable has a chance to be true with further assignments
+                has_chance = true;
+        }
+
+        if (clause_is == false && !has_chance)
+            return 0;
+        else if (clause_is == false && has_chance)
+            // we can't tell if entire expression is true, 
+            // since we still don't know if we can set this clause to a true state 
+            return -1; 
+        // If clause is true, just keep going
     }
 
-    clauses = new_clauses;
+    return 1;
+}
+
+bool SatSolver::is_satisfiable_v2(const std::vector<Clause>& clauses, std::vector<int>& memo, std::priority_queue<std::pair<size_t, Variable>>& variables_per_reps, const std::vector<size_t>& negative_reps, const std::vector<size_t>& positive_reps)
+{
+    // Search first variable to change
+    auto const  [reps_for_var, next_var] = variables_per_reps.top();
+    variables_per_reps.pop();
+
+    // Choose next value for this variable
+    auto next_value = 0;
+    if (positive_reps[next_var] > negative_reps[next_var])
+        next_value = 1;
+
+    auto used_values = 0;
+    while(used_values < 2)
+    {
+        memo[next_var] = next_value;
+        auto const eval_result = eval(clauses, memo);
+        if (eval_result == 1)
+            return true; // Win!
+        else if (eval_result == 0)
+        {
+            memo[next_var] = -1;
+        }
+        else if (eval_result == -1)
+        {
+            // We need to recurse
+            if (is_satisfiable_v2(clauses, memo, variables_per_reps, negative_reps, positive_reps))
+                return true;
+        }
+        used_values++;
+        next_value = (next_value + 1) % 2;
+    }
+
+    variables_per_reps.emplace(reps_for_var, next_var);
+    memo[next_var] = -1;
+    return false;
 }

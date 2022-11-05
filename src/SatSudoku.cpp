@@ -168,6 +168,7 @@ void SatSudoku::run_sat_solver()
 
     SatSolution solution;
     std::cout << BLUE << "Solving SAT..." << RESET << std::endl;
+    sat.simplify();
     if (_time == 0) // If time == 0, just solve it whenever it's ready
         solution = sat.solve();
     else // Otherwise, wait for the specified ammount of time
