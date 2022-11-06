@@ -12,11 +12,11 @@ OBJS_DEBUG := $(patsubst src/%.cpp,debug/%.o,$(SRCS))
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS) -O2
+	$(CC) -o $@ $^ $(CFLAGS) -O3
 
 bin/%.o: src/%.cpp
 	mkdir --parents bin
-	$(CC) $(CFLAGS) -c $< -O2
+	$(CC) $(CFLAGS) -c $< -O3
 	mv *.o bin/
 
 clean:

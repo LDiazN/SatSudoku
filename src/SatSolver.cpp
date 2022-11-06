@@ -152,6 +152,9 @@ SatSolution SatSolver::solve()
     // en la expresión original y ordenarlas por repeticiones
 
     std::map<Variable, size_t> repetitions;
+    std::map<Variable, size_t> positive_repetitions;
+    std::map<Variable, size_t> negative_repetitions;
+
     for(int i = 1; static_cast<size_t>(i) <= _n_variables; i++)
         repetitions[i] = 0;
 
@@ -170,9 +173,9 @@ SatSolution SatSolver::solve()
     std::vector<Variable> sorted_variables(_n_variables);
     for(size_t i = 0; i < _n_variables && !variables_per_repetition.empty(); i++)
     {
-        auto const& [reps, var] = variables_per_repetition.top();
-        variables_per_repetition.pop();
+        auto const [reps, var] = variables_per_repetition.top();
         sorted_variables[i] = var;
+        variables_per_repetition.pop();
     }
     // -----------------------------------------------------------------------------------
 
@@ -180,7 +183,7 @@ SatSolution SatSolver::solve()
     clauses_to_literal();
     auto watchlist = create_watchlist(state);
 
-    if (!solve_by_watchlist(watchlist, state, sorted_variables))
+    if (!solve_by_watchlist_iter(watchlist, state, sorted_variables))
     {
         return SatSolution{SatSatisfiable::UNSATISFIABLE, 0, std::vector<Variable>(), SATFormat::CNF};
     }
@@ -324,6 +327,50 @@ bool SatSolver::solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state
 
     state[next_var] = -1;
     return false;
+}
+
+bool SatSolver::solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index)
+{
+    auto const n = _n_variables;
+    std::vector<int> tries(n+1);
+    while (true)
+    {
+        if (next_var_index == n)
+            return true;
+        auto next_var = variables[next_var_index];
+        bool tried = false;
+        for (int a = 0; a < 2; a++)
+        {
+            if(((tries[next_var] >> a) & 1) == 0)
+            {
+                tried = true;
+                tries[next_var] |= 1 << a;
+                state[next_var] = a;
+
+                if (!update_watchlist(watchlist, next_var << 1 | a, state))
+                {
+                    state[next_var] = -1;
+                }
+                else 
+                {
+                    next_var_index++;
+                    break;
+                }
+            }
+        }
+        if (!tried)
+        {
+            if (next_var_index == 0)
+                return false;
+            else
+            {
+                tries[next_var] = 0;
+                state[next_var] = -1;
+                next_var_index --;
+            }
+        }
+    }
+    
 }
 
 void SatSolver::reduce_unit_clauses(std::vector<Clause>& clauses, std::vector<int>& state)

@@ -127,6 +127,8 @@ class SatSolver
 
         bool solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index = 0);
 
+        bool solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index = 0);
+
         static void reduce_unit_clauses(std::vector<Clause>& clauses, std::vector<int>& state);
 
         /// @brief Assign constant value to all variables that show up always possitive, or always negated, and simplify expression
