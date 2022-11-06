@@ -147,11 +147,40 @@ SatSolution SatSolver::solve()
     literal_elimination(_clauses, state);
     simplify();
 
+    // -- Experimento: Queremos ver si con la optimización de prioridad por frecuencia
+    // mejoramos el tiempo. Para esto tenemos que contar cuantas veces sale una variable
+    // en la expresión original y ordenarlas por repeticiones
+
+    std::map<Variable, size_t> repetitions;
+    for(int i = 1; static_cast<size_t>(i) <= _n_variables; i++)
+        repetitions[i] = 0;
+
+    for(auto const& clause : _clauses)
+    {
+        for(auto const elem : clause)
+        {   
+            auto const elem_abs = abs(elem);
+            repetitions[elem_abs] ++;
+        }
+    }
+
+    std::priority_queue<std::pair<size_t, Variable>> variables_per_repetition;
+    for(auto const& [var, reps] : repetitions)
+        variables_per_repetition.emplace(reps, var);
+    std::vector<Variable> sorted_variables(_n_variables);
+    for(size_t i = 0; i < _n_variables && !variables_per_repetition.empty(); i++)
+    {
+        auto const& [reps, var] = variables_per_repetition.top();
+        variables_per_repetition.pop();
+        sorted_variables[i] = var;
+    }
+    // -----------------------------------------------------------------------------------
+
     // Convert clauses to literals
     clauses_to_literal();
     auto watchlist = create_watchlist(state);
 
-    if (!solve_by_watchlist(watchlist, state))
+    if (!solve_by_watchlist(watchlist, state, sorted_variables))
     {
         return SatSolution{SatSatisfiable::UNSATISFIABLE, 0, std::vector<Variable>(), SATFormat::CNF};
     }
@@ -272,18 +301,20 @@ bool SatSolver::update_watchlist(Watchlist & watchlist, int neg_literal, const s
     return true;
 }
 
-bool SatSolver::solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, Variable next_var)
+bool SatSolver::solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index)
 {
-    if (static_cast<size_t>(next_var) == _n_variables + 1)
+
+    if (next_var_index == _n_variables)
         return true;
 
+    auto const next_var = variables[next_var_index];
     bool result = false;
     for(int i = 0; i < 2; i++)
     {
         state[next_var] = i;
         if (update_watchlist(watchlist, (next_var << 1) | i, state))
         {
-            result = solve_by_watchlist(watchlist, state, next_var+1);
+            result = solve_by_watchlist(watchlist, state, variables, next_var_index+1);
             if (result) break;
         }
     }

@@ -125,7 +125,7 @@ class SatSolver
 
         bool update_watchlist(Watchlist& watchlist, int neg_literal, const std::vector<int>& state) const;
 
-        bool solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, Variable next_var = 1);
+        bool solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index = 0);
 
         static void reduce_unit_clauses(std::vector<Clause>& clauses, std::vector<int>& state);
 
