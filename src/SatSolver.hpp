@@ -7,6 +7,7 @@
 #include <iostream>
 #include <queue>
 #include <map>
+#include <assert.h>
 
 #ifndef STATUS
     #define SUCCESS 1
@@ -52,8 +53,6 @@ struct SatSolution
 /// @brief A SAT problem
 class SatSolver
 {
-    public: 
-        
     public:
         SatSolver(const std::vector<Clause>& clauses, size_t n_variables, SATFormat format = SATFormat::CNF);
 
@@ -71,16 +70,16 @@ class SatSolver
         /// @return Parsing status, 1 for success, 0 for failure
         static STATUS from_str_stream(std::stringstream& sat_str_stream, SatSolver& outResult);
 
-        /// @brief Try to solve the SAT problem
-        /// @return A solution representing the valid solution
-        SatSolution solve();
+        /// @brief Return a string representing this sat problem according to the specification 
+        /// @return a string with a valid SAT file
+        std::string as_str() const;
 
         /// @brief Try to reduce sat as much as possible using symlogic properties
         void simplify();
 
-        /// @brief Return a string representing this sat problem according to the specification 
-        /// @return a string with a valid SAT file
-        std::string as_str() const;
+        /// @brief Try to solve the SAT problem
+        /// @return A solution representing the valid solution
+        SatSolution solve();
 
         /// @brief Get expected value for this variable for it to be true. If negated, value is false, if not, is true
         /// @param var var to get value for
@@ -88,12 +87,45 @@ class SatSolver
         static int expected_value(Variable var);
 
     private:
-        /// @brief Utility function to find if a list of clauses is satisfiable or not using backtracking 
-        /// @param clauses list of clauses to check for satisfiability
-        /// @param memo state of variables so far. 1 for true, 0 for false, -1 for unset
-        /// @param current_clause start of clause in vector of clauses
-        /// @return if this set of clauses is satisfiable
-        bool is_satisfiable(const std::vector<Clause>& clauses,std::vector<int>& memo, size_t current_clause = 0);
+
+        using Watchlist = std::vector<std::vector<Clause>>;
+
+        /// @brief transform clauses tu literal format
+        void clauses_to_literal();
+
+        /// @brief Map a literal in the format p or -p to 2p for p, or 2p+1 for -p
+        /// @param literal a literal, as in clauses 
+        /// @return mapped literal, 2p or 2p + 1 accordingly
+        int input_literal_to_mapped_literal(int literal)
+        {
+            if (literal > 0) return 2 * literal;
+            if (literal < 0) return 2 * literal + 1;
+            assert(false && "literals can't be zero");
+        }
+
+        static bool literal_is_negated(int literal)
+        {
+            assert(literal > 0 && "Invalid literal, you forgot to map it?");
+            return (literal & 1) == 1;
+        }
+
+        static int literal_to_variable(int literal)
+        {
+            assert(literal > 0 && "Invalid literal, you forgot to map it?");
+            return literal >> 1;
+        }
+
+        static int variable_to_literal(int variable)
+        {
+            auto var_pos = abs(variable);
+            return variable < 0 ? var_pos << 1 | 1 : var_pos << 1;
+        }
+
+        Watchlist create_watchlist(const std::vector<int>& state) const;
+
+        bool update_watchlist(Watchlist& watchlist, int neg_literal, const std::vector<int>& state) const;
+
+        bool solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, Variable next_var = 1);
 
         static void reduce_unit_clauses(std::vector<Clause>& clauses, std::vector<int>& state);
 
@@ -113,26 +145,12 @@ class SatSolver
         /// @param state state of variables
         /// @return 1 if true, 0 if not, -1 if can't tell
         static int eval(const std::vector<Clause>& clauses ,const std::vector<int>& state);
-
-        /// @brief This implementation of `is_satisfiable` is variable-first, instead of clause-first.
-        /// @param clauses clauses forming this SAT expression
-        /// @param memo state of variables
-        /// @return true if expression is satisfiable, false if it isn't
-        bool is_satisfiable_v2(const std::vector<Clause>& clauses, std::vector<int>& memo, std::priority_queue<std::pair<size_t, Variable>>& variables_per_reps,const std::vector<size_t>& negative_reps, const std::vector<size_t>& positive_reps);
-
-        // void add_clause_count(size_t clause_to_count)
-        // {
-        //     if(_clause_frequence_counter.find(clause_to_count) == _clause_frequence_counter.end())
-        //         _clause_frequence_counter[clause_to_count] = 1;
-        //     else 
-        //         _clause_frequence_counter[clause_to_count]++;
-        // }
     private:
         size_t _n_variables;
         size_t _n_clauses;
         SATFormat _format;
         std::vector<Clause> _clauses;
-        // std::map<size_t, size_t> _clause_frequence_counter;
+        std::vector<int> _literals;
 };
 
 #endif

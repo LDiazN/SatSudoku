@@ -108,6 +108,33 @@ STATUS SatSolver::from_str_stream(std::stringstream& sat_str_stream, SatSolver& 
     return SUCCESS;
 }
 
+std::string SatSolver::as_str() const
+{
+    std::stringstream ss;
+
+    std::string format_str;
+    switch (_format)
+    {
+    case SATFormat::CNF:
+        format_str = "cnf";
+        break;
+    default:
+        assert(false && "format not supported");
+        break;
+    }
+
+    // Write header
+    ss << "p " << format_str << " " << _n_variables << " " << _n_clauses << std::endl;
+    for (const auto &clause : _clauses )
+    {
+        for (const auto &var : clause)
+            ss << var << " "; 
+        ss << "0\n";
+    }
+
+    return ss.str();
+}
+
 SatSolution SatSolver::solve()
 {
     // Initialize state as -1, each variable can be modified as needed
@@ -120,37 +147,14 @@ SatSolution SatSolver::solve()
     literal_elimination(_clauses, state);
     simplify();
 
-    // ---- Debug only --------------------------------
-    std::map<Variable, size_t> repetitions;
-    std::vector<size_t> negative_reps(_n_variables, 0);
-    std::vector<size_t> positive_reps(_n_variables, 0);
-    for (auto const& clause : _clauses)
-        for (auto const var : clause)
-        {
-            auto const var_index = abs(var);
-            if (repetitions.find(var_index) == repetitions.end() && state[var_index] == -1)
-                repetitions[var_index] = 1;
-            else 
-                repetitions[var_index] ++;
-            if (var < 0)
-            {
-                negative_reps[var_index] ++;
-            }
-            else if (var > 0)
-                positive_reps[var_index] ++;
-            else 
-                assert(false && "Invalid state");
-        }
-    std::priority_queue<std::pair<size_t, Variable>> variables_per_reps;
-    for(auto const& [var, reps] : repetitions)
-        variables_per_reps.push({reps, var});
+    // Convert clauses to literals
+    clauses_to_literal();
+    auto watchlist = create_watchlist(state);
 
-
-    // ------------------------------------------------
-    // Perform backtracking to solve this sat
-    if (!is_satisfiable_v2(_clauses, state, variables_per_reps, negative_reps, positive_reps))
-        // If we couldn't make it, return empty response
+    if (!solve_by_watchlist(watchlist, state))
+    {
         return SatSolution{SatSatisfiable::UNSATISFIABLE, 0, std::vector<Variable>(), SATFormat::CNF};
+    }
 
     // Build result
     std::vector<Variable> result(_n_variables);
@@ -198,139 +202,6 @@ void SatSolver::simplify()
     _clauses = final_clauses;
 }
 
-std::string SatSolver::as_str() const
-{
-    std::stringstream ss;
-
-    std::string format_str;
-    switch (_format)
-    {
-    case SATFormat::CNF:
-        format_str = "cnf";
-        break;
-    default:
-        assert(false && "format not supported");
-        break;
-    }
-
-    // Write header
-    ss << "p " << format_str << " " << _n_variables << " " << _n_clauses << std::endl;
-    for (const auto &clause : _clauses )
-    {
-        for (const auto &var : clause)
-            ss << var << " "; 
-        ss << "0\n";
-    }
-
-    return ss.str();
-}
-
-bool SatSolver::is_satisfiable(const std::vector<Clause>& clauses, std::vector<int>& memo, size_t current_clause) 
-{
-    // add_clause_count(current_clause);
-
-    assert(memo.size() == _n_variables + 1 && "Not the right amount of variables");
-    auto const& clause = clauses[current_clause];
-    // A bool expresion is satisfiable if this clause is satisfiable and all the clauses are satisfiable
-
-    if (current_clause >= clauses.size())
-        return true;                        // assume last clause is true, neutral of and
-
-    if(clause.size() == 2) // Special optimization for 2-sized clauses
-    {
-        size_t next_clause = current_clause + 1;
-        // Search the next clause not 2-sized or that doesn't starts with first variable of current_clause
-        Variable first_variable = clause[0];
-
-        while(clauses[next_clause].size() == 2 && clauses[next_clause][0] == first_variable && next_clause < clauses.size())
-            next_clause++;
-
-        // applying rule (p v q) ^ (p v r) == p v (q ^ r) over every clause with the same starting p:
-        
-        // Try with first_variable set to its expected value
-        auto first_variable_index = abs(first_variable);
-        if (memo[first_variable_index] == -1)
-        {
-            memo[first_variable_index] = expected_value(first_variable);
-
-            if (is_satisfiable(clauses, memo, next_clause))
-                return true;
-            
-            memo[first_variable_index] = -1;
-        }
-        else if (memo[first_variable_index] == expected_value(first_variable))
-        {
-            return is_satisfiable(clauses, memo, next_clause);
-        }
-
-        // Check if all right side variables have memo == -1 or memo == expected.
-        // If there is a variable such that memo != -1 && != expected, then we can't 
-        // satisfy it and therefore the sat cannot be satisfied
-        for(size_t i = current_clause; i < next_clause; i++)
-        {   
-            auto clause_index = abs(clauses[i][1]);
-            if (memo[clause_index] != -1 && memo[clause_index] != expected_value(clauses[i][1]))
-                return false;
-        }
-        
-        // now that we know that all variables are either in their expected value
-        // or able to change, change them 
-        std::set<Variable> changed_indices; // to keep track which variables to rollback in case of failure
-        for(size_t i = current_clause; i < next_clause; i++)
-        {
-            auto right_side = clauses[i][1];
-            auto right_side_index = abs(right_side);
-            auto right_side_expected = expected_value(right_side);
-
-            if (memo[right_side_index] == -1)
-            {
-                changed_indices.insert(right_side_index);
-                memo[right_side_index] = right_side_expected;
-            }
-        }
-
-        if (is_satisfiable(clauses, memo, next_clause))
-            return true;
-        
-        // We failed and sat can't be satisfied, but we have to rollback
-        for(auto const chanched_index : changed_indices)
-            memo[chanched_index] = -1;
-
-        return false;
-    }
-    // -- End Optimization -----------------------------------------------------
-
-    for(auto const variable : clause)
-    {
-        assert(variable != 0 && "Variable can't be 0");
-        auto const var_index = abs(variable);
-
-        // Select expected value for this variable
-        int expected_value_for_var = expected_value(variable);
-        
-        // if value value of this variable is true, this clause is already satisfiable 
-        if (memo[var_index] == -1)
-        {
-            // We can change it, but with responsability. 
-            // if we win, we leave memo as it is. If not, we roll back our changes
-            memo[var_index] = expected_value_for_var;
-            if (is_satisfiable(clauses, memo, current_clause + 1))
-            {
-                return true;
-            }
-            
-            // Rollback, we didn't win :(
-            memo[var_index] = -1;
-        }
-        else if (memo[var_index] == expected_value_for_var)
-            return is_satisfiable(clauses, memo, current_clause + 1);
-        else  // If value of this variable is false, then we have to keep checking remaining variables 
-            continue;
-    }
-
-    return false; // If we couldn't make this 
-}
-
 int SatSolver::expected_value(Variable var)
 {
     int expected_value;
@@ -342,6 +213,86 @@ int SatSolver::expected_value(Variable var)
         assert(false && "Variable shouldn't be zero");
 
     return expected_value;
+}
+
+void SatSolver::clauses_to_literal()
+{
+    for(auto& clause : _clauses)
+        for (size_t i = 0; i < clause.size(); i++)
+            clause[i] = variable_to_literal(clause[i]);
+}
+
+SatSolver::Watchlist SatSolver::create_watchlist(const std::vector<int>& state) const
+{
+    // ASSUME CLAUSES IS IN RIGHT FORMAT
+    Watchlist watchlist(2 * (_n_variables + 1));
+    for(auto const& clause : _clauses)
+    {
+        for(auto const elem : clause)
+        {
+            // Find first element that is either true or not assigned
+            auto elem_index = (literal_to_variable(elem));
+            if (state[elem_index] == -1 || state[elem_index] == 1)
+            {
+                watchlist[elem].push_back(clause);
+                break;
+            }
+        }
+    }
+
+    return watchlist;
+}
+
+bool SatSolver::update_watchlist(Watchlist & watchlist, int neg_literal, const std::vector<int>& state) const
+{
+    while(!watchlist[neg_literal].empty())
+    {
+        auto const& clause = watchlist[neg_literal].back();
+        bool alternative_found = false;
+        bool remove_last = false;
+        for(auto const alternative : clause)
+        {
+            auto variable = literal_to_variable(alternative);
+            auto parity = alternative & 1;
+            if (state[variable] == -1 || state[variable] == (parity ^ 1))
+            {
+                alternative_found = true;
+                watchlist[alternative].push_back(clause);
+                remove_last = true;
+                break;
+            }
+        }
+
+        if (remove_last)
+            watchlist[neg_literal].pop_back();
+        if (!alternative_found)
+            return false;
+    }
+
+    return true;
+}
+
+bool SatSolver::solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, Variable next_var)
+{
+    if (static_cast<size_t>(next_var) == _n_variables + 1)
+        return true;
+
+    bool result = false;
+    for(int i = 0; i < 2; i++)
+    {
+        state[next_var] = i;
+        if (update_watchlist(watchlist, (next_var << 1) | i, state))
+        {
+            result = solve_by_watchlist(watchlist, state, next_var+1);
+            if (result) break;
+        }
+    }
+
+    if (result)
+        return true;
+
+    state[next_var] = -1;
+    return false;
 }
 
 void SatSolver::reduce_unit_clauses(std::vector<Clause>& clauses, std::vector<int>& state)
@@ -449,41 +400,4 @@ int SatSolver::eval(const std::vector<Clause>& clauses,const std::vector<int>& s
     }
 
     return 1;
-}
-
-bool SatSolver::is_satisfiable_v2(const std::vector<Clause>& clauses, std::vector<int>& memo, std::priority_queue<std::pair<size_t, Variable>>& variables_per_reps, const std::vector<size_t>& negative_reps, const std::vector<size_t>& positive_reps)
-{
-    // Search first variable to change
-    auto const  [reps_for_var, next_var] = variables_per_reps.top();
-    variables_per_reps.pop();
-
-    // Choose next value for this variable
-    auto next_value = 0;
-    if (positive_reps[next_var] > negative_reps[next_var])
-        next_value = 1;
-
-    auto used_values = 0;
-    while(used_values < 2)
-    {
-        memo[next_var] = next_value;
-        auto const eval_result = eval(clauses, memo);
-        if (eval_result == 1)
-            return true; // Win!
-        else if (eval_result == 0)
-        {
-            memo[next_var] = -1;
-        }
-        else if (eval_result == -1)
-        {
-            // We need to recurse
-            if (is_satisfiable_v2(clauses, memo, variables_per_reps, negative_reps, positive_reps))
-                return true;
-        }
-        used_values++;
-        next_value = (next_value + 1) % 2;
-    }
-
-    variables_per_reps.emplace(reps_for_var, next_var);
-    memo[next_var] = -1;
-    return false;
 }
