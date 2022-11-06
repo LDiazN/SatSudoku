@@ -3,7 +3,6 @@
 #include <sstream>
 #include <set>
 #include <algorithm>
-#include <map>
 #include <queue>
 
 std::string SatSolution::as_str()
@@ -152,8 +151,8 @@ SatSolution SatSolver::solve()
     // en la expresión original y ordenarlas por repeticiones
 
     std::map<Variable, size_t> repetitions;
-    std::map<Variable, size_t> positive_repetitions;
-    std::map<Variable, size_t> negative_repetitions;
+    std::vector<size_t> positive_repetitions(_n_variables+1, 0);
+    std::vector<size_t> negative_repetitions(_n_variables+1, 0);
 
     for(int i = 1; static_cast<size_t>(i) <= _n_variables; i++)
         repetitions[i] = 0;
@@ -164,6 +163,14 @@ SatSolution SatSolver::solve()
         {   
             auto const elem_abs = abs(elem);
             repetitions[elem_abs] ++;
+            if (elem < 0)
+                negative_repetitions[elem_abs]++;
+            else if (elem > 0)
+                positive_repetitions[elem_abs]++;
+            else 
+            {
+                assert(false && "invalid variable == 0");
+            }
         }
     }
 
@@ -183,7 +190,7 @@ SatSolution SatSolver::solve()
     clauses_to_literal();
     auto watchlist = create_watchlist(state);
 
-    if (!solve_by_watchlist_iter(watchlist, state, sorted_variables))
+    if (!solve_by_watchlist_iter(watchlist, state, sorted_variables, positive_repetitions, negative_repetitions))
     {
         return SatSolution{SatSatisfiable::UNSATISFIABLE, 0, std::vector<Variable>(), SATFormat::CNF};
     }
@@ -258,15 +265,16 @@ SatSolver::Watchlist SatSolver::create_watchlist(const std::vector<int>& state) 
 {
     // ASSUME CLAUSES IS IN RIGHT FORMAT
     Watchlist watchlist(2 * (_n_variables + 1));
-    for(auto const& clause : _clauses)
-    {
+    for(size_t i = 0; i < _clauses.size(); i++)
+    {   
+        auto const& clause = _clauses[i];
         for(auto const elem : clause)
         {
             // Find first element that is either true or not assigned
             auto elem_index = (literal_to_variable(elem));
             if (state[elem_index] == -1 || state[elem_index] == 1)
             {
-                watchlist[elem].push_back(clause);
+                watchlist[elem].push_back(i);
                 break;
             }
         }
@@ -279,7 +287,8 @@ bool SatSolver::update_watchlist(Watchlist & watchlist, int neg_literal, const s
 {
     while(!watchlist[neg_literal].empty())
     {
-        auto const& clause = watchlist[neg_literal].back();
+        auto const& clause_index = watchlist[neg_literal].back();
+        auto const& clause = _clauses[clause_index];
         bool alternative_found = false;
         bool remove_last = false;
         for(auto const alternative : clause)
@@ -289,7 +298,7 @@ bool SatSolver::update_watchlist(Watchlist & watchlist, int neg_literal, const s
             if (state[variable] == -1 || state[variable] == (parity ^ 1))
             {
                 alternative_found = true;
-                watchlist[alternative].push_back(clause);
+                watchlist[alternative].emplace_back(clause_index);
                 remove_last = true;
                 break;
             }
@@ -329,7 +338,7 @@ bool SatSolver::solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state
     return false;
 }
 
-bool SatSolver::solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index)
+bool SatSolver::solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables,  const std::vector<size_t>& positive_reps, const std::vector<size_t>& negative_reps, size_t next_var_index)
 {
     auto const n = _n_variables;
     std::vector<int> tries(n+1);
@@ -339,7 +348,9 @@ bool SatSolver::solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& 
             return true;
         auto next_var = variables[next_var_index];
         bool tried = false;
-        for (int a = 0; a < 2; a++)
+        int a = static_cast<int>(positive_reps[next_var] > negative_reps[next_var]);
+        int n_tries = 0;
+        while (n_tries < 2)
         {
             if(((tries[next_var] >> a) & 1) == 0)
             {
@@ -357,6 +368,8 @@ bool SatSolver::solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& 
                     break;
                 }
             }
+            a = a ^ 1;
+            n_tries++;
         }
         if (!tried)
         {
