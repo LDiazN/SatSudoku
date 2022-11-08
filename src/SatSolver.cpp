@@ -192,7 +192,7 @@ SatSolution SatSolver::solve()
     // Convert clauses to literals
     clauses_to_literal();
     auto watchlist = create_watchlist(state);
-    if (!_clauses.empty() && !solve_by_watchlist(watchlist, state, sorted_variables))
+    if (!_clauses.empty() && !solve_by_watchlist(watchlist, state, sorted_variables, positive_repetitions, negative_repetitions))
     {
         return SatSolution{SatSatisfiable::UNSATISFIABLE, 0, std::vector<Variable>(), SATFormat::CNF};
     }
@@ -242,6 +242,7 @@ void SatSolver::simplify()
             continue;
         }
     }
+
     _clauses = final_clauses;
 }
 
@@ -291,7 +292,7 @@ bool SatSolver::check_watchlist_invariant(const std::vector<int>& state, const W
 {
     for (size_t literal = 1; literal < watchlist.size(); literal++)
     {
-        auto const parity = literal & 1;
+        int const parity = literal & 1;
         auto const variable = literal_to_variable(literal);
         if (state[variable] != -1 && state[variable] == parity && !watchlist[literal].empty())
             return false;
@@ -370,31 +371,33 @@ bool SatSolver::update_watchlist(Watchlist& watchlist, int neg_literal, std::vec
     return true;
 }
 
-bool SatSolver::solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index)
+bool SatSolver::solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, const std::vector<size_t>& positive_reps, const std::vector<size_t>& negative_reps, size_t next_var_index)
 {
-    #ifdef DEBUG
-    assert(check_watchlist_invariant(state, watchlist) && "Deluanay constraint not met");
-    #endif
     if (next_var_index == variables.size())
         return true;
 
     auto const next_var = variables[next_var_index];
     if(state[next_var] != -1) // if already set, maybe due to an implication, just skip
-        return solve_by_watchlist(watchlist, state, variables, next_var_index + 1);
+        return solve_by_watchlist(watchlist, state, variables, positive_reps, negative_reps, next_var_index + 1);
 
     bool result = false;
-    for(int i = 0; i < 2; i++)
+    size_t n_tries = 2;
+    // first try to true if variable occurs positive most of the time, or 0 otherwise
+    int i = positive_reps[next_var] > negative_reps[next_var] ? 1 : 0;
+    while(n_tries)
     {
         state[next_var] = i;
         std::vector<int> implications;
         if (update_watchlist(watchlist, (next_var << 1) | i, state, implications))
         {
-            result = solve_by_watchlist(watchlist, state, variables, next_var_index+1);
+            result = solve_by_watchlist(watchlist, state, variables, positive_reps, negative_reps, next_var_index+1);
             if (result) break;
         }
 
         for(auto const var : implications)
             state[var] = -1;
+        n_tries--;
+        i = i ^ 1;
     }
 
     if (result)
@@ -406,7 +409,6 @@ bool SatSolver::solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state
 
 bool SatSolver::solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables,  const std::vector<size_t>& positive_reps, const std::vector<size_t>& negative_reps, size_t next_var_index)
 {   
-    PROFILE_SCOPE("solve_by_watchlist_iter");
     auto const n = _n_variables;
     std::vector<int> tries(n+1);
     std::vector<int> implications;
@@ -456,16 +458,22 @@ bool SatSolver::solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& 
 
 void SatSolver::reduce_unit_clauses(std::vector<Clause>& clauses, std::vector<int>& state)
 {
-    // Collect all unit clauses
-    for(auto const& clause : clauses)
-        if (clause.size() == 1)
-        {
-            auto const var = clause[0];
-            auto const var_index = abs(var);
-            state[var_index] = expected_value(var);
-        }
+    bool change = true;
+    while (change)
+    {
+        change = false;
+        // Collect all unit clauses
+        for(auto const& clause : clauses)
+            if (clause.size() == 1)
+            {
+                auto const var = clause[0];
+                auto const var_index = abs(var);
+                state[var_index] = expected_value(var);
+                change = true;
+            }
 
-    constant_reduction(clauses, state);
+        constant_reduction(clauses, state);
+    }
 }
 
 void SatSolver::literal_elimination(std::vector<Clause>& clauses, std::vector<int>& state)
