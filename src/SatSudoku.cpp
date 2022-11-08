@@ -182,8 +182,13 @@ void SatSudoku::run_sat_solver()
         }
         solution = solve_thread.get();
     }
-    
-    std::cout << GREEN << "SAT Solved!" << RESET << std::endl;
-    std::cout << GREEN << "Solution:" << RESET << std::endl;
-    solution.display();
+    if (solution.satisfiable == SatSatisfiable::SATISFIABLE)
+    {
+        std::cout << GREEN << "SAT Solved!" << RESET << std::endl;
+        std::cout << GREEN << "Solution:" << RESET << std::endl;
+        solution.display();
+        return;
+    }
+    std::cout << RED << "SAT has no solution T.T" << RESET << std::endl;
+
 }

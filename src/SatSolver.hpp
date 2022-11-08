@@ -124,7 +124,9 @@ class SatSolver
 
         Watchlist create_watchlist(const std::vector<int>& state) const;
 
-        bool update_watchlist(Watchlist& watchlist, int neg_literal, const std::vector<int>& state) const;
+        static bool check_watchlist_invariant(const std::vector<int>& state, const Watchlist& watchlist);
+
+        bool update_watchlist(Watchlist& watchlist, int neg_literal, std::vector<int>& state, std::vector<int>& implications) const;
 
         bool solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index = 0);
 
