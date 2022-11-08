@@ -1,48 +1,38 @@
-#include <iostream>
-#include "SatSudoku.hpp"
-#include <set>
-#include <string>
 
-int main(int argc, char** argv)
+#include<iostream>
+#include<string>
+#include"Orchestration.hpp"
+
+int main(int argc, char** argv) 
 {
-    // Parsing arguments
-    if (argc  == 1)
+    if (argc == 1) 
     {
-        std::cout << "Usage:\n\tSatSudoku <time_in_seconds> <path_to_sudoku_file> [optional_flags]\n";
-        std::cout << "Available flags:\n";
-        std::cout << "\t--SAT: Interpret file input as a SAT file, and solve such file directly\n";
+        std::cout<<"Usage\n\t./SatSolver <options> <arguments>\n";
+        std::cout<<"Valid options:\n\t--toSAT <sudoku> : where sudoku is a valid sudoku description\n";
+        std::cout<<"\t--solve <cnf>: where cnf is a valid cnf SAT description\n";
+        std::cout<<"\t--toSudoku <SAT>: where SAT is a valid SAT description\n";
         return 0;
     }
-    else if (argc < 3)
-    {
-        std::cerr << "Not enough arguments" << std::endl;
-        return 1;
+
+    const std::string option_string = argv[1];
+
+
+    //std::cout<<"DBG::"<<option_string<<"\n";
+    //std::cout<<"DBG::"<<line<<"\n";
+
+    if (option_string.compare("--toSAT") == 0) 
+        sudoku_to_sat();
+    else if (option_string.compare("--solve") == 0) 
+        solver_caller();
+    else if (option_string.compare("--toSudoku") == 0) 
+        sat_to_sudoku();
+    else  {
+        std::cerr<<option_string<<" Is not a valid option of SatSolver\n";    
+        return -1;
     }
 
-    // Try to read first argument
-    float time = 0;
-    auto result = sscanf(argv[1], "%f", &time);
-    if (result == 0)
-    {
-        std::cerr << "Invalid value for time: " << argv[1] << std::endl;
-        std::cerr << "Expected float" <<  std::endl;
-        return 1;
-    }
+    // ! File existence validation is left out to orquestrator
 
-    // Read additional flags
-    std::set<std::string> flags;
-    for(int i = 3; i < argc; i++)
-        flags.emplace(argv[i]);
-
-    // Read flags
-
-    bool is_sudoku = flags.find("--SAT") == flags.end();
-    bool dump_sat = flags.find("--dump-sat") != flags.end();
-    // Read second argument
-    std::string file_path(argv[2]);
-    SatSudoku program(time, file_path, is_sudoku, dump_sat);
-    program.run();
-
-
+    
     return 0;
 }
