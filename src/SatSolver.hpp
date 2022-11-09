@@ -40,7 +40,7 @@ struct SatSolution
     /// @return string formated as a valid SAT solution file
     std::string as_str();
 
-    void display() { std::cout << as_str() << std::endl; }
+    void display() { std::cout << as_str(); }
 
     public:
         SatSatisfiable satisfiable;

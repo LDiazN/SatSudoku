@@ -29,7 +29,18 @@ SOLVER=$3
 
 ## 
 
-make -C `pwd` && make -C zchaff64
+make -C `pwd` 
+
+if [ $? -ne 0 ] ; then
+    echo -e "ERROR: Problem building project.Stopping";
+    exit -1 
+fi
+
+make -C zchaff64
+if [ $? -ne 0 ] ; then
+    echo -e "ERROR: Problem building ZCHAFF project.Stopping";
+    exit -1
+fi
 
 
 # Manpages lie, word splitting is indeed performed on command substituion even
@@ -61,7 +72,7 @@ for sudoku in $INSTANCES; do
     (./SatSudoku --toSAT < $SUDOKU_BUFFER) > $SAT_BUFFER 
 
     if [ $? -ne 0 ]; then
-        echo "Sudoku transformation went wrong for $idx instance. Skipping display.." && continue
+        echo "ERROR: Sudoku transformation went wrong for instance No $idx. Skipping." && continue
     fi
 
     run_solver 
@@ -69,14 +80,18 @@ for sudoku in $INSTANCES; do
     TMP=$?
 
     if [ $TMP -eq 42 ]; then
-        echo -e "Solver timed out. Skipping.." && continue
+        echo -e "WARNING: Solver timed out. Skipping.." && continue
     elif [ $TMP -ne 0 ]; then
-        echo -e "Problem during solving $?. Skipping.." && continue
+        echo -e "ERROR: Something went wrong while solving. Skipping $idx instance." && continue
     fi
 
-    ./SatSudoku --toSudoku < $SUDOKU_BUFFER
-    #cat $SUDOKU_BUFFER $SOLUTION_BUFFER | ./SATSudoku --toSudoku
-    # ! hard to catch errors this way
+    #./SatSudoku --toSudoku < $SUDOKU_BUFFER
+    cat $SUDOKU_BUFFER $SOLUTION_BUFFER | ./SatSudoku --toSudoku
+
+    if [ $? -ne 0 ]; then
+        echo -e "ERROR: Something went wrong while display solution. Skipping $idx instance." && continue
+    fi
+
 done
 
 rm $SUDOKU_BUFFER $SAT_BUFFER $SOLUTION_BUFFER

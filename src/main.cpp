@@ -1,7 +1,8 @@
 
 #include<iostream>
 #include<string>
-#include"Orchestration.hpp"
+
+#include"ForeGround.hpp"
 
 int main(int argc, char** argv) 
 {
@@ -15,21 +16,24 @@ int main(int argc, char** argv)
     }
 
     const std::string option_string = argv[1];
+    STATUS result;
 
-
-    //std::cout<<"DBG::"<<option_string<<"\n";
-    //std::cout<<"DBG::"<<line<<"\n";
+    ForeGround call;
+    call.init();
 
     if (option_string.compare("--toSAT") == 0) 
-        sudoku_to_sat();
+        result = call.sudoku_to_sat();
     else if (option_string.compare("--solve") == 0) 
-        solver_caller();
+        result = call.solver_caller();
     else if (option_string.compare("--toSudoku") == 0) 
-        sat_to_sudoku();
+        result = call.sat_to_sudoku();
     else  {
         std::cerr<<option_string<<" Is not a valid option of SatSolver\n";    
         return -1;
     }
+
+    if (result == FAILURE)
+        return 1;
 
     // ! File existence validation is left out to orquestrator
 
