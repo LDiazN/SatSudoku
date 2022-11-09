@@ -8,6 +8,8 @@
 #include <streambuf>
 #include <cmath>
 
+sig_atomic_t ForeGround::finished ; 
+
 void ForeGround::init() {
     ForeGround::finished = 0;
 }

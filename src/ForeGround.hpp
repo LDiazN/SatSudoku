@@ -13,14 +13,14 @@ public:
     static sig_atomic_t finished ; 
     ForeGround(){};
 
-    static void usr_sig_handler(int sig_id) ;
 
-    void init();
+    static void init();
     
     STATUS read_sudoku(Sudoku &in_sudoku);
     STATUS sudoku_to_sat();
 
-    STATUS solver_caller();
+    static void usr_sig_handler(int sig_id) ;
+    static STATUS solver_caller();
 
     STATUS read_sat_solution(struct SatSolution& solution);
     STATUS sat_to_sudoku();

@@ -45,7 +45,7 @@ using namespace std;
 
 #include "zchaff_solver.h"
 
-// #define VERIFY_ON
+//#define VERIFY_ON
 
 #ifdef VERIFY_ON
 ofstream verify_out("resolve_trace");
