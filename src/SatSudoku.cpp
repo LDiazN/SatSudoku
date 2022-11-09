@@ -59,7 +59,7 @@ Sudoku SatSudoku::solve_sudoku(Sudoku& sudoku, bool dump_sat)
     std::cout << "Solving sudoku..." << std::endl;
     auto sat_solver_start = std::chrono::high_resolution_clock::now();
     auto solution = sat.solve();
-    auto satsolver_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - sat_solver_start);
+    auto satsolver_duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - sat_solver_start);
     std::cout << "SAT Solver done in " << YELLOW << satsolver_duration.count() << " ms\n" << RESET;
 
     switch (solution.satisfiable)
@@ -80,7 +80,7 @@ Sudoku SatSudoku::solve_sudoku(Sudoku& sudoku, bool dump_sat)
     std::cout << "Converting from SAT back to sudoku..." << std::endl;
     auto sol_2_sudoku_start = std::chrono::high_resolution_clock::now();
     sudoku.add_sat_solution(solution);
-    auto sol_2_sudoku_duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - sol_2_sudoku_start);
+    auto sol_2_sudoku_duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - sol_2_sudoku_start);
     std::cout << "Convertion done in " << YELLOW << sol_2_sudoku_duration.count() << " ms\n" << RESET;
     std::cout << "Entire process finished in " << YELLOW << sudoku_2_sat_duration.count() + satsolver_duration.count() + sol_2_sudoku_duration.count() << " ms\n" << RESET;
     return sudoku;
@@ -182,8 +182,13 @@ void SatSudoku::run_sat_solver()
         }
         solution = solve_thread.get();
     }
-    
-    std::cout << GREEN << "SAT Solved!" << RESET << std::endl;
-    std::cout << GREEN << "Solution:" << RESET << std::endl;
-    solution.display();
+    if (solution.satisfiable == SatSatisfiable::SATISFIABLE)
+    {
+        std::cout << GREEN << "SAT Solved!" << RESET << std::endl;
+        std::cout << GREEN << "Solution:" << RESET << std::endl;
+        solution.display();
+        return;
+    }
+    std::cout << RED << "SAT has no solution T.T" << RESET << std::endl;
+
 }

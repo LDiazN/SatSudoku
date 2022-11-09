@@ -88,7 +88,8 @@ class SatSolver
 
     private:
 
-        using Watchlist = std::vector<std::vector<Clause>>;
+        // A list of lists of clause indices
+        using Watchlist = std::vector<std::vector<size_t>>;
 
         /// @brief transform clauses tu literal format
         void clauses_to_literal();
@@ -123,11 +124,13 @@ class SatSolver
 
         Watchlist create_watchlist(const std::vector<int>& state) const;
 
-        bool update_watchlist(Watchlist& watchlist, int neg_literal, const std::vector<int>& state) const;
+        static bool check_watchlist_invariant(const std::vector<int>& state, const Watchlist& watchlist);
 
-        bool solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index = 0);
+        bool update_watchlist(Watchlist& watchlist, int neg_literal, std::vector<int>& state, std::vector<int>& implications) const;
 
-        bool solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, size_t next_var_index = 0);
+        bool solve_by_watchlist(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, const std::vector<size_t>& positive_reps, const std::vector<size_t>& negative_reps, size_t next_var_index = 0);
+
+        bool solve_by_watchlist_iter(Watchlist& watchlist, std::vector<int>& state, const std::vector<Variable>& variables, const std::vector<size_t>& positive_reps, const std::vector<size_t>& negative_reps,size_t next_var_index = 0 );
 
         static void reduce_unit_clauses(std::vector<Clause>& clauses, std::vector<int>& state);
 
