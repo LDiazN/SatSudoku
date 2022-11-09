@@ -80,7 +80,7 @@ for sudoku in $INSTANCES; do
     TMP=$?
 
     if [ $TMP -eq 42 ]; then
-        echo -e "WARNING: Solver timed out. Skipping.." && continue
+        echo -e "WARNING: Solver timed out. Skipping $idx instance." && continue
     elif [ $TMP -ne 0 ]; then
         echo -e "ERROR: Something went wrong while solving. Skipping $idx instance." && continue
     fi
