@@ -25,10 +25,10 @@ TMP=0
 # Exit on compile error
 if [[ $SOLVER = "ZCHAFF" ]]; then
     make -C zchaff64 && make -C `pwd`
-    TMP=$?
+    TMP=$(($?))
 elif [[ $SOLVER = "SAD" ]]; then
     make -C `pwd` 
-    TMP=$?
+    TMP=$(($?))
 else 
     echo -e "Invalid solver. Options are 'ZCHAFF' and 'SAD'.\nExiting"
     exit -1
@@ -39,7 +39,7 @@ if [ $TMP -ne 0 ] ; then
     exit -1 
 fi
 
-#clear # Clean display
+clear # Clean display
 
 # Manpages lie, word splitting is indeed performed on command substituion even
 # if done with backtics (`). The translation (tr), is used to adjust this flaw
@@ -51,7 +51,6 @@ SAT_BUFFER=`mktemp`
 SOLUTION_BUFFER=`mktemp`
 OUT_FILE=sat.log
 
-
 echo "" > $OUT_FILE
 
 echo "Getting instances from $INPUT_PATH" >> $OUT_FILE
@@ -59,11 +58,11 @@ echo "Getting instances from $INPUT_PATH" >> $OUT_FILE
 # Run propper solver depending on input 
 run_solver() {
     if [[ $SOLVER = "ZCHAFF" ]] ; then
-        # TODO arrange 
         (./zchaff64/zchaff $SAT_BUFFER $TIMEOUT) |& tee -a $OUT_FILE 
     elif [[ $SOLVER = "SAD" ]] ; then
-        (timeout --preserve-status -s SIGUSR1 "$TIMEOUT"s ./SatSudoku --solve < $SAT_BUFFER) > $SOLUTION_BUFFER 
+        (timeout --preserve-status -s SIGUSR1 "$TIMEOUT"s ./SatSudoku --solve < $SAT_BUFFER) > $SOLUTION_BUFFER  
     fi
+
 }
 
 let "idx = -1" 
@@ -80,9 +79,8 @@ for sudoku in $INSTANCES; do
         continue
     fi
 
-    run_solver |& tee -a $OUT_FILE
-
-    TMP=$?
+    run_solver 
+    TMP=$(($?))
 
     if [ $TMP -eq 42 ]; then
         echo -e "WARNING: Solver timed out. Skipping $idx instance."  | tee -a $OUT_FILE
