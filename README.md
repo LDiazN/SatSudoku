@@ -374,7 +374,7 @@ La complejidad total del algoritmo viene descrito en la siguiente tabla:
 | resolver sat (backtracking, watchlist) | O(2^n + n * c) | O(2^n) |
 | Total | O(2^n * n) | O(2^n) |
 
-Aunque las complejidades se ven bastante intimidantes, en la práctica no suelen ser tan severas y se pueden resolver muchas instancias de sudoku en tiempos razonables sin mucho consumo de memoria
+Aunque las complejidades se ven bastante intimidantes, en la práctica no suelen ser tan severas y se pueden resolver muchas instancias de sudoku en tiempos razonables sin mucho consumo de memoria. Sin embargo, muchas otras no se pueden resolver en tiempo razonable, lo cual es de esperarse dado que las optimizaciones que aplicamos siguen siendo heurísticas al final del día, y la complejidad no ha cambiado.
 
 ### Time - C
 
