@@ -20,14 +20,14 @@ INPUT_PATH=$1
 TIMEOUT=$(($2))  # Whenever not an integer it leads to zero (wait forever)
 
 SOLVER=$3
-TMP
+TMP=0
 
 # Exit on compile error
 if [[ $SOLVER = "ZCHAFF" ]]; then
-    make -C `pwd` 
+    make -C zchaff64 && make -C `pwd`
     TMP=$?
 elif [[ $SOLVER = "SAD" ]]; then
-    make -C zchaff64
+    make -C `pwd` 
     TMP=$?
 else 
     echo -e "Invalid solver. Options are 'ZCHAFF' and 'SAD'.\nExiting"
@@ -39,7 +39,7 @@ if [ $TMP -ne 0 ] ; then
     exit -1 
 fi
 
-clear # Clean display
+#clear # Clean display
 
 # Manpages lie, word splitting is indeed performed on command substituion even
 # if done with backtics (`). The translation (tr), is used to adjust this flaw
