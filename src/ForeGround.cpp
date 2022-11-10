@@ -1,6 +1,4 @@
-
 #include "ForeGround.hpp"
-// #include "Colors.hpp"
 
 #include <chrono>
 #include <filesystem>
@@ -56,27 +54,21 @@ STATUS ForeGround::read_sudoku(Sudoku &in_sudoku) {
     return SUCCESS;
 }
 
-//---------------------------------------------------
-
 
 STATUS ForeGround::sudoku_to_sat() {
     Sudoku sudoku(0);
     
-    auto status = read_sudoku(sudoku); // ! Ugly but we'll see
+    auto status = read_sudoku(sudoku); 
     if (status == FAILURE)
         return FAILURE;
 
     SatSolver sat = sudoku.as_sat();
 
     sat.simplify();
-    std::cout << sat.as_str();  // ! OJO
+    std::cout << sat.as_str();  
 
     return SUCCESS;
 }
-
-
-
-//---------------------------------------------------
 
 
 void ForeGround::usr_sig_handler(int sig_id) {
@@ -106,6 +98,7 @@ STATUS ForeGround::solver_caller()  {
     SatSolution solution;
 
     auto solve_start = std::chrono::high_resolution_clock::now();
+    sat.simplify();
     solution = sat.solve();
     auto solver_duration =  std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - solve_start);
     ForeGround::finished = 1 ;
@@ -119,8 +112,6 @@ STATUS ForeGround::solver_caller()  {
     return SUCCESS;
 }
 
-//---------------------------------------------------
-
 STATUS ForeGround::read_sat_solution(struct SatSolution& solution) {
 
     std::string line, mode;
@@ -129,7 +120,6 @@ STATUS ForeGround::read_sat_solution(struct SatSolution& solution) {
         std::stringstream extractor(line);
 
         extractor >> mode;
-        //std::cout<<line<<std::endl;
 
         if (mode.size() == 0)
         {
@@ -204,7 +194,7 @@ STATUS ForeGround::read_sat_solution(struct SatSolution& solution) {
         return FAILURE;
     }
 
-    if (satisfiable != 1) { // TODO discard invalid and unsatisfiable 
+    if (satisfiable != 1) { 
         solution.satisfiable = satisfiable;
         solution.n_variables = n_vars;
         solution.variable_states = std::vector<Variable>();

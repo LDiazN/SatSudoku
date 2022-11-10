@@ -13,7 +13,6 @@ public:
     static sig_atomic_t finished ; 
     ForeGround(){};
 
-
     static void init();
     
     STATUS read_sudoku(Sudoku &in_sudoku);

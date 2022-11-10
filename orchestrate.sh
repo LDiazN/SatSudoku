@@ -1,4 +1,6 @@
+#!/bin/bash
 
+# Validate commandline
 if [ $# -ne 3 ] ; then 
     echo -e "Invalid commandline.\nUsage: ./orchestrate <in-path> <timeout> <solver>"
     echo -e "\t<in-path>: File to draw instances from."
@@ -15,81 +17,86 @@ if [ ! -f $1 ] ; then
 fi
 
 INPUT_PATH=$1
+TIMEOUT=$(($2))  # Whenever not an integer it leads to zero (wait forever)
 
-# Whenever not an integer it leads to zero (wait forever)
-TIMEOUT=$(($2)) 
+SOLVER=$3
+TMP
 
-# Validate solver is either ZCHAFF or SAT
-if [ $3 != "ZCHAFF" -a $3 != "SAD" ]; then
+# Exit on compile error
+if [[ $SOLVER = "ZCHAFF" ]]; then
+    make -C `pwd` 
+    TMP=$?
+elif [[ $SOLVER = "SAD" ]]; then
+    make -C zchaff64
+    TMP=$?
+else 
     echo -e "Invalid solver. Options are 'ZCHAFF' and 'SAD'.\nExiting"
     exit -1
 fi
 
-SOLVER=$3
-
-## 
-
-make -C `pwd` 
-
-if [ $? -ne 0 ] ; then
-    echo -e "ERROR: Problem building project.Stopping";
+if [ $TMP -ne 0 ] ; then
+    echo "ERROR: Problem building project. Stopping";
     exit -1 
 fi
 
-make -C zchaff64
-if [ $? -ne 0 ] ; then
-    echo -e "ERROR: Problem building ZCHAFF project.Stopping";
-    exit -1
-fi
-
+clear # Clean display
 
 # Manpages lie, word splitting is indeed performed on command substituion even
 # if done with backtics (`). The translation (tr), is used to adjust this flaw
 INSTANCES=`cat $INPUT_PATH | tr ' ' '*'`
 
-echo "Getting instances from $INPUT_PATH"
-
+# Temporary files for orchestration
 SUDOKU_BUFFER=`mktemp`
 SAT_BUFFER=`mktemp`
 SOLUTION_BUFFER=`mktemp`
+OUT_FILE=sat.log
 
-# TODO explain
+
+echo "" > $OUT_FILE
+
+echo "Getting instances from $INPUT_PATH" >> $OUT_FILE
+
+# Run propper solver depending on input 
 run_solver() {
     if [[ $SOLVER = "ZCHAFF" ]] ; then
-        (./zchaff64/zchaff $SAT_BUFFER $TIMEOUT) > $SOLUTION_BUFFER #| tee $SOLUTION_BUFFER 
+        # TODO arrange 
+        (./zchaff64/zchaff $SAT_BUFFER $TIMEOUT) |& tee -a $OUT_FILE 
     elif [[ $SOLVER = "SAD" ]] ; then
-        (timeout --preserve-status -s SIGUSR1 "$TIMEOUT"s ./SatSudoku --solve < $SAT_BUFFER) > $SOLUTION_BUFFER #| tee $SOLUTION_BUFFER 
+        (timeout --preserve-status -s SIGUSR1 "$TIMEOUT"s ./SatSudoku --solve < $SAT_BUFFER) > $SOLUTION_BUFFER 
     fi
 }
 
 let "idx = -1" 
 for sudoku in $INSTANCES; do
     ((++idx))
-    echo -e "--> Results for sudoku instance at line $idx\n"
+    echo -e "--> Results for sudoku instance at line $idx" | tee -a $OUT_FILE
 
     echo $sudoku | tr '*' ' ' > "$SUDOKU_BUFFER"
 
     (./SatSudoku --toSAT < $SUDOKU_BUFFER) > $SAT_BUFFER 
 
     if [ $? -ne 0 ]; then
-        echo "ERROR: Sudoku transformation went wrong for instance No $idx. Skipping." && continue
+        echo "ERROR: Sudoku transformation went wrong for instance No $idx. Skipping." | tee -a $OUT_FILE
+        continue
     fi
 
-    run_solver 
+    run_solver |& tee -a $OUT_FILE
 
     TMP=$?
 
     if [ $TMP -eq 42 ]; then
-        echo -e "WARNING: Solver timed out. Skipping $idx instance." && continue
+        echo -e "WARNING: Solver timed out. Skipping $idx instance."  | tee -a $OUT_FILE
+        continue
     elif [ $TMP -ne 0 ]; then
-        echo -e "ERROR: Something went wrong while solving. Skipping $idx instance." && continue
+        echo -e "ERROR: Something went wrong while solving. Skipping $idx instance." | tee -a $OUT_FILE
+        continue
     fi
 
-    #./SatSudoku --toSudoku < $SUDOKU_BUFFER
-    cat $SUDOKU_BUFFER $SOLUTION_BUFFER | ./SatSudoku --toSudoku
+    cat $SUDOKU_BUFFER $SOLUTION_BUFFER | ./SatSudoku --toSudoku |& tee -a $OUT_FILE
 
     if [ $? -ne 0 ]; then
-        echo -e "ERROR: Something went wrong while display solution. Skipping $idx instance." && continue
+        echo -e "ERROR: Something went wrong while display solution. Skipping $idx instance." | tee -a $OUT_FILE 
+        continue
     fi
 
 done

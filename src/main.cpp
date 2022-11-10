@@ -34,9 +34,6 @@ int main(int argc, char** argv)
 
     if (result == FAILURE)
         return 1;
-
-    // ! File existence validation is left out to orquestrator
-
     
     return 0;
 }
