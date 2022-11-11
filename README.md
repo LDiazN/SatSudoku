@@ -34,6 +34,8 @@ Para buildear el proyecto simplemente hay que hacer `make` en la raiz del mismo.
     
     En donde `$SAT_SOLUTION_FILE` es un archivo con una instancia de solución en el formato de salida SAT adecuado.
     
+    > El conversor de SAT a sudoku si bien reconoce el formato de entrada descrito en el enunciado del problema, no
+    > reconoce el formato que ZCHAFF da como salida (son parecidos pero distintos)
 
 ## Orquestado
 
@@ -45,8 +47,8 @@ Para correr un archivo con varias instancias de Sudoku
 
 En donde:
 
-- `SRC_FILE` : es el archivo en formato de sudoku adecuado. Los archivos de prueba se encuentra bajo el directorio `samples/`
-- `$TIMEOUT` : es el tiempo a esperar por cada solucion
+- `$SRC_FILE` : es el archivo en formato de sudoku adecuado. Los archivos de prueba se encuentra bajo el directorio `samples/`
+- `$TIMEOUT` : es el tiempo a esperar por cada solucion en segundos.
 - `$SOLVER`  : es `SAD` para la implementación creada y `ZCHAFF` para la conocida.
 
 Los resultados parciales/excepciones/errores se muestran en la terminal y se logean al archivo `sat.log`
@@ -376,8 +378,59 @@ La complejidad total del algoritmo viene descrito en la siguiente tabla:
 
 Aunque las complejidades se ven bastante intimidantes, en la práctica no suelen ser tan severas y se pueden resolver muchas instancias de sudoku en tiempos razonables sin mucho consumo de memoria. Sin embargo, muchas otras no se pueden resolver en tiempo razonable, lo cual es de esperarse dado que las optimizaciones que aplicamos siguen siendo heurísticas al final del día, y la complejidad no ha cambiado.
 
-### Time - C
+### Tiempos de ejecución
 
-### Memory - C
+A continuación una comparación de los tiempos que tomo llegar a una solución (satisfacible o no) de ambos *solvers* por instancia, con *timeout* de 20 mins para c/u. Las Casillas vacias indican que no se llegó a una solución en el tiempo establecido.
 
-.. comparación ZCHAFF - SAD
+| Instancia | ZCHAFF | SAD |
+| --- | --- | --- |
+| 1 | 0,785 | 1366,68 |
+| 2 | 0,429 | 3,7983 |
+| 3 | 1,222 | 9105,38 |
+| 4 | 2,248 | 503702 |
+| 5 | 1,308 |  |
+| 6 | 1,115 |  |
+| 7 | 2,347 | 72405,9 |
+| 8 | 1,013 |  |
+| 9 | 3,685 |  |
+| 10 | 0,419 |  |
+| 11 | 5,457 |  |
+| 12 | 0,51 |  |
+| 13 | 0,821 |  |
+| 14 | 0,473 |  |
+| 15 | 7,393 |  |
+| 16 | 0,331 | 1,18716 |
+| 17 | 0,409 | 1,33259 |
+| 18 | 0,375 | 1,62315 |
+| 19 | 20,857 |  |
+| 20 | 11,845 |  |
+| 21 | 4,965 |  |
+| 22 | 7,169 |  |
+| 23 | 5,289 |  |
+| 24 | 10,458 |  |
+| 25 | 21,626999 |  |
+| 26 | 8,359 |  |
+| 27 | 5,238 |  |
+| 28 | 1,378 | 24646,1 |
+| 29 | 0,972 | 18063,1 |
+| 30 | 0,74 | 27869,4 |
+| 31 | 4,671 |  |
+| 32 | 2,659 |  |
+| 33 | 26,380001 |  |
+| 34 | 17,573999 |  |
+| 35 | 0,531 |  |
+| 36 | 2,718 |  |
+| 37 | 0,316 | 3,49491 |
+| 38 | 0,385 | 589,507 |
+| 39 | 0,482 | 1195,02 |
+| 40 | 2,178 | 275169 |
+| 41 | 0,667 | 129859 |
+| 42 | 2,407 | 71330 |
+| 43 | 3,655 |  |
+| 44 | 52,303001 |  |
+| 45 | 51,210003 |  |
+| 46 | 10,695001 |  |
+| 47 | 190278 |  |
+| 48 | 824292 |  |
+
+![Untitled](Barras.png)
