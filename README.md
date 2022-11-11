@@ -433,4 +433,6 @@ A continuación una comparación de los tiempos que tomo llegar a una solución 
 | 47 | 190278 |  |
 | 48 | 824292 |  |
 
+Gráfiacamente
+
 ![Untitled](Barras.png)
